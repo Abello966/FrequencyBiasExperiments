@@ -2,3 +2,9 @@
 *__pycache__
 model_weights
 datasets
+
+# never commit the real data
+data/VGGFaces2/*
+data/ILSVRC2012/*
+
+
