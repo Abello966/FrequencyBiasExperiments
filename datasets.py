@@ -29,8 +29,25 @@ class CifarDataset():
 
         self.input_shape = X_train.shape[1:]
         self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
-        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
+        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(X_test.shape[0])
         self.steps_per_epoch = X_train.shape[0] // batch_size
+
+# Assumes VGGFaceDataset has already been preprocessed
+# So naturally every image has a 182x182 size
+class VGGFaceDataset():
+
+    #182x182 => 160x160
+    def random_crop(image_in):
+        random_x = np.random.choice(np.arange(0, 23))
+        random_y = np.random.choice(np.arange(0, 23))
+        return image_in[random_x:(182 - (22 - random_x)), random_y:(182 - (22 - random_y)), :]
+
+    # TODO pandas logic
+    def __init__(self):
+
+        self.input_shape = (160, 160, 3)
+        pass
+
 
 # to-do: define ImageNet, VGGFaces
 def show_available():
