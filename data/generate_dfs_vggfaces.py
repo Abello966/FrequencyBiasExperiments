@@ -2,10 +2,10 @@
 # these can be downloaded at the VGGFaces2 institutional website
 import pandas as pd
 
-PATH = "VGGFaces2/"
+PATH = "/misc/users/abello/VGGFaces2/"
 
 # produce class to integer identification
-df = pd.read_csv(PATH + identity_meta.csv",sep=", ")
+df = pd.read_csv(PATH + "identity_meta.csv",sep=", ")
 classname_to_int = dict(zip(df.Class_ID.to_list(), df.Class_ID.index.to_list()))
 
 train_classname = list()

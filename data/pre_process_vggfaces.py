@@ -6,7 +6,7 @@ from math import floor
 
 TARGET_SIZE = 182 #182 to be reduced to 160 via random cropping
 EXPAND_SIZE = 0.2
-PATH = "VGGFaces2/"
+PATH = "/misc/users/abello/VGGFaces2/"
 
 train_df = pd.read_csv(PATH + "train_df.csv", index_col="NAME_ID")
 train_df_info = pd.read_csv(PATH + "loose_bb_train.csv", index_col="NAME_ID")
@@ -43,8 +43,10 @@ def preprocess_image(row):
 
     im.save(PATH + row.path)
 
-#for _, x in train_df.iterrows():
-    #preprocess_image(x)
+print("Preprocessing train dataset")
+for _, x in train_df.iterrows():
+    preprocess_image(x)
 
+print("Preprocessing test dataset")
 for _, x in test_df.iterrows():
     preprocess_image(x)
