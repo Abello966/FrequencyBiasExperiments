@@ -4,15 +4,7 @@ import tensorflow.keras as kr
 import datasets
 import datetime
 import arch
-
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-# magic
-tf.keras.backend.set_floatx('float32')
-gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-for device in gpu_devices:
-    tf.config.experimental.set_memory_growth(device, True)
-
 
 def show_use_and_exit():
     print("train_model: train an ARCHITECTURE on a specific DATASET")
@@ -49,6 +41,17 @@ datagen_kwargs = {
     "data_format":"channels_last",
 }
 
+# VGGFace
+vgg_dataset_kwargs = {
+    "df_path": "data/VGGFaces2/test_df.csv",
+    "images_path": "data/VGGFaces2/",
+    "path_col": "path",
+    "class_col": "class",
+    "test_samples": 2
+}
+
+empty_kwargs = {}
+
 model_kwargs = {
     #"Normalization": "BatchNormalization"
 }
@@ -56,14 +59,26 @@ model_kwargs = {
 if len(sys.argv) != 3:
     show_use_and_exit()
 
+# magic
+tf.keras.backend.set_floatx('float32')
+gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+for device in gpu_devices:
+    tf.config.experimental.set_memory_growth(device, True)
+
+
 todays_mod = sys.argv[1]
 todays_ds = sys.argv[2]
+
+if todays_ds == "VGGFace2":
+    dataset_kwarg = vgg_dataset_kwargs
+else:
+    dataset_kwarg = empty_kwargs
 
 NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + todays_mod + ""
 EPOCHS = 200
 batch_size = 32
 
-dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size)
+dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size, **dataset_kwarg)
 model = arch.get_arch(todays_mod, dataset.input_shape, dataset.nclasses, **model_kwargs)
 
 MCC = kr.callbacks.ModelCheckpoint(
