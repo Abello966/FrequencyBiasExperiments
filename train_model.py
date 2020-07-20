@@ -88,4 +88,4 @@ MCC = kr.callbacks.ModelCheckpoint(
 opt = kr.optimizers.Adam()
 model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 model.fit(dataset.train_dataset, validation_data=dataset.test_dataset, epochs=EPOCHS,
-        steps_per_epoch=dataset.steps_per_epoch, callbacks=[MCC])
+        steps_per_epoch=dataset.steps_per_epoch, validation_steps=dataset.validation_steps, callbacks=[MCC])
