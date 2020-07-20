@@ -30,9 +30,9 @@ class CifarDataset():
 
         self.input_shape = X_train.shape[1:]
         self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
-        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(X[0])
+        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
         self.steps_per_epoch = X_train.shape[0] // batch_size
-        self.validation_steps = None
+        self.validation_steps = X_test.shape[0] // batch_size
 
 # Assumes VGGFaceDataset has already been preprocessed
 # So naturally every image has a 182x182 size
