@@ -1,12 +1,22 @@
 # dataset module
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from tensorflow.data import Dataset
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2"]
+
+# default args
+vgg_dataset_kwargs = {
+    "df_path": "data/VGGFaces2/test_df.csv",
+    "images_path": "data/VGGFaces2/",
+    "path_col": "path",
+    "class_col": "class",
+    "test_samples": 2
+}
 
 class CifarDataset():
     # extended: False for 10, True for 100
@@ -76,19 +86,21 @@ class VGGFaceTrainDataset():
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
-        self.test_dataset = datagen.flow_from_dataframe(
+        test_generator = datagen.flow_from_dataframe(
             test_dataset_df,
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
             target_size=(182, 182),
             classes=classlist,
+            batch_size=batch_size,
             class_mode="categorical",
-            batch_size=batch_size
+            shuffle=True
         )
-        self.test_dataset = crop_generator(self.test_dataset, 160)
-
-        self.train_dataset = datagen.flow_from_dataframe(
+        self.test_dataset = Dataset.from_generator(lambda: crop_generator(test_generator, 160),
+                                                           (tf.float32, tf.float32),
+                                                           (tf.TensorShape([batch_size, 160, 160, 3]), tf.TensorShape([batch_size, len(classlist)])))
+        train_generator = datagen.flow_from_dataframe(
             train_dataset_df,
             directory=images_path,
             x_col=path_col,
@@ -96,9 +108,12 @@ class VGGFaceTrainDataset():
             target_size=(182, 182),
             classes=classlist,
             class_mode="categorical",
-            batch_size=batch_size
+            batch_size=batch_size,
+            shuffle=True
         )
-        self.train_dataset = crop_generator(self.train_dataset, 160)
+        self.train_dataset = Dataset.from_generator(lambda: crop_generator(train_generator, 160),
+                                                            (tf.float32, tf.float32),
+                                                            (tf.TensorShape([batch_size, 160, 160, 3]), tf.TensorShape([batch_size, len(classlist)])))
 
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size

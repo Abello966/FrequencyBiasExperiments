@@ -76,16 +76,21 @@ else:
 
 NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + todays_mod + ""
 EPOCHS = 200
-batch_size = 32
+batch_size = 4
 
 dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size, **dataset_kwarg)
-model = arch.get_arch(todays_mod, dataset.input_shape, dataset.nclasses, **model_kwargs)
+strategy = tf.distribute.MirroredStrategy()
 
-MCC = kr.callbacks.ModelCheckpoint(
-    filepath="model_weights/" + NAME,
-    monitor="val_loss",
-    save_best_only=True)
-opt = kr.optimizers.Adam()
-model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+with strategy.scope():
+    model = arch.get_arch(todays_mod, dataset.input_shape, dataset.nclasses, **model_kwargs)
+
+    MCC = kr.callbacks.ModelCheckpoint(
+        filepath="model_weights/" + NAME,
+        monitor="val_loss",
+        save_best_only=True)
+        opt = kr.optimizers.Adam()
+        model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+        
 model.fit(dataset.train_dataset, validation_data=dataset.test_dataset, epochs=EPOCHS,
-        steps_per_epoch=dataset.steps_per_epoch, validation_steps=dataset.validation_steps, callbacks=[MCC])
+        steps_per_epoch=dataset.steps_per_epoch, validation_steps=dataset.validation_steps, callbacks=[MCC],
+        use_multiprocessing=True, workers=4, max_queue_size=12)
