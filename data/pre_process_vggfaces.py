@@ -6,7 +6,7 @@ from math import floor
 
 TARGET_SIZE = 182 #182 to be reduced to 160 via random cropping
 EXPAND_SIZE = 0.2
-PATH = "/misc/users/abello/VGGFaces2/"
+PATH = "/misc/users/abello/VGGFaces2/" # edit this as you will
 
 train_df = pd.read_csv(PATH + "train_df.csv", index_col="NAME_ID")
 train_df_info = pd.read_csv(PATH + "loose_bb_train.csv", index_col="NAME_ID")

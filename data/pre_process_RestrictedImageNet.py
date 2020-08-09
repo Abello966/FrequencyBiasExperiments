@@ -1,3 +1,5 @@
+# this script generates the RestrictedImageNet dataset and should be ran on the folder where the ILSVRC2017 folder is located
+# I used https://academictorrents.com/details/943977d8c96892d24237638335e481f3ccd54cfb/tech&dllist=1 but I think it's available on Kaggle aswell
 import glob
 from PIL import Image
 import numpy as np
@@ -67,6 +69,13 @@ if not os.path.exists("RestrictedImageNet"):
     os.mkdir("RestrictedImageNet")
 
 print("Started preprocessing: train")
+for key, value in group_class.items():
+    print("Starting groupclass", key)
+    for classname in value:
+        print("Starting classname:", classname)
+        preprocess_folder("train", key, classname)
+
+print("Started preprocessing: val")
 for key, value in group_class.items():
     print("Starting groupclass", key)
     for classname in value:
