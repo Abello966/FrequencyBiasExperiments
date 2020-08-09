@@ -67,9 +67,10 @@ def random_crop(image_in):
 def crop_generator(batches, crop_length):
     while True:
         batch_x, batch_y = next(batches)
-        batch_x = batch_x[0]
-        batch_y = batch_y[0]
-        batch_x_crop = random_crop(batch_x)
+        batch_x_crop = np.zeros((batch_x.shape[0], crop_length, crop_length, 3))
+        for i in range(batch_x.shape[0]):
+            batch_x_crop[i] = random_crop(batch_x[i])
+
         yield (batch_x_crop, batch_y)
 
 class VGGFaceTrainDataset():
@@ -82,7 +83,11 @@ class VGGFaceTrainDataset():
 
         test_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(test_samples))
         test_dataset_df.index = test_dataset_df.index.droplevel()
+        test_dataset_df = test_dataset_df.iloc[:(len(test_dataset_df) // batch_size) * batch_size]
         train_dataset_df = data.loc[data.index.difference(test_dataset_df.index)]
+
+        train_dataset_df.to_csv("data/VGGFace2_train_df.csv")
+        test_dataset_df.to_csv("data/VGGFace2_test_df.csv")
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
@@ -91,26 +96,28 @@ class VGGFaceTrainDataset():
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
-            target_size=(160, 160),
+            target_size=(182, 182),
             classes=classlist,
             batch_size=batch_size,
             class_mode="categorical",
             shuffle=True
         )
-        self.test_dataset = test_generator()
+        self.test_dataset = Dataset.from_generator(lambda: crop_generator(test_generator(), 160),
+                                                  (tf.float32, tf.float32),
+                                                  (tf.TensorShape([batch_size, 160, 160, 3]), tf.TensorShape([batch_size, len(classlist)])))
 
         train_generator = lambda: datagen.flow_from_dataframe(
             train_dataset_df,
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
-            target_size=(160, 160),
+            target_size=(182, 182),
             classes=classlist,
             class_mode="categorical",
             batch_size=batch_size,
             shuffle=True
         )
-        self.train_dataset = train_generator()
+        self.train_dataset = crop_generator(train_generator(), 160)
 
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
