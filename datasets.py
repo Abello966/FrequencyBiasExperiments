@@ -86,37 +86,32 @@ class VGGFaceTrainDataset():
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
-        test_generator = datagen.flow_from_dataframe(
+        test_generator = lambda: datagen.flow_from_dataframe(
             test_dataset_df,
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
-            target_size=(182, 182),
+            target_size=(160, 160),
             classes=classlist,
-            batch_size=1,
+            batch_size=batch_size,
             class_mode="categorical",
             shuffle=True
         )
-        self.test_dataset = Dataset.from_generator(lambda: crop_generator(test_generator, 160),
-                                                           (tf.float32, tf.float32),
-                                                           (tf.TensorShape([160, 160, 3]), tf.TensorShape([len(classlist)])))
-        self.test_dataset = self.test_dataset.batch(batch_size)
+        self.test_dataset = test_generator()
 
-        train_generator = datagen.flow_from_dataframe(
+        train_generator = lambda: datagen.flow_from_dataframe(
             train_dataset_df,
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
-            target_size=(182, 182),
+            target_size=(160, 160),
             classes=classlist,
             class_mode="categorical",
-            batch_size=1,
+            batch_size=batch_size,
             shuffle=True
         )
-        self.train_dataset = Dataset.from_generator(lambda: crop_generator(train_generator, 160),
-                                                            (tf.float32, tf.float32),
-                                                            (tf.TensorShape([160, 160, 3]), tf.TensorShape([len(classlist)])))
-        self.train_dataset = self.train_dataset.batch(batch_size)
+        self.train_dataset = train_generator()
+
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
         self.validation_steps = len(test_dataset_df) // batch_size
