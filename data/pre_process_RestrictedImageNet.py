@@ -51,6 +51,54 @@ def preprocess_folder(division, groupclass, classname):
         name = data[i].split("/")[-1]
         image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)
 
+def preprocess_val(division, group_class_dict):
+    if not os.path.exists("RestrictedImageNet/" + division):
+        os.mkdir("RestrictedImageNet/" + division)
+
+    # get list of annotations and files
+    annot = glob.glob("ILSVRC2017/Annotations/CLS-LOC/" + division + "/*")
+    data = glob.glob("ILSVRC2017/Data/CLS-LOC/" + division + "/*")
+
+    # filter out inconsistencies
+    annot_files = [x.split("/")[-1].split(".")[0] for x in annot]
+    data_files = [x.split("/")[-1].split(".")[0] for x in data]
+    data = [x for x in data if x.split("/")[-1].split(".")[0] in annot_files]
+    annot = [x for x in annot if x.split("/")[-1].split(".")[0] in data_files]
+
+    #since we filtered we can guarantee that annot[i] <=> data[i] if they are sorted
+    data = sorted(data)
+    annot = sorted(annot)
+
+    for i in range(len(data)):
+        tree = ET.parse(annot[i])
+        root = tree.getroot()
+        try:
+            cname = next(root.iter("name"))
+        except StopIteration:
+            continue
+
+        # find out which superclass it belongs, if it belongs to any at all
+        groupclass = None
+        for key, item in group_class_dict.items():
+            if cname in item:
+                groupclass = key
+                break
+
+        if groupclass is not None:
+            try:
+                xmin = int(next(root.iter("xmin")).text)
+                xmax = int(next(root.iter("xmax")).text)
+                ymin = int(next(root.iter("ymin")).text)
+                ymax = int(next(root.iter("ymax")).text)
+            except StopIteration:
+                continue
+
+            image = Image.open(data[i])
+            image = image.crop((xmin, ymin, xmax, ymax))
+
+            name = data[i].split("/")[-1]
+            image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)    
+
 group_class = {
     "Dog": list(range(151, 269)),
     "Cat": list(range(281, 286)),
