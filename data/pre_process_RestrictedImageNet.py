@@ -73,7 +73,7 @@ def preprocess_val(division, group_class_dict):
         tree = ET.parse(annot[i])
         root = tree.getroot()
         try:
-            cname = next(root.iter("name"))
+            cname = next(root.iter("name")).text
         except StopIteration:
             continue
 
@@ -85,6 +85,9 @@ def preprocess_val(division, group_class_dict):
                 break
 
         if groupclass is not None:
+            if not os.path.exists("RestrictedImageNet/" + division + "/" + groupclass):
+                os.mkdir("RestrictedImageNet/" + division + "/" + groupclass)
+
             try:
                 xmin = int(next(root.iter("xmin")).text)
                 xmax = int(next(root.iter("xmax")).text)
@@ -97,7 +100,7 @@ def preprocess_val(division, group_class_dict):
             image = image.crop((xmin, ymin, xmax, ymax))
 
             name = data[i].split("/")[-1]
-            image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)    
+            image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)
 
 group_class = {
     "Dog": list(range(151, 269)),
@@ -124,8 +127,4 @@ for key, value in group_class.items():
         preprocess_folder("train", key, classname)
 
 print("Started preprocessing: val")
-for key, value in group_class.items():
-    print("Starting groupclass", key)
-    for classname in value:
-        print("Starting classname:", classname)
-        preprocess_folder("train", key, classname)
+preprocess_val("val", group_class)

@@ -127,6 +127,24 @@ class VGGFaceTrainDataset():
 # A test dataset will be fully loaded and also has different logic (not classification but FR)
 # class VGGFaceTestDataset
 
+class RestrictedImageNetDataset():
+
+    def __init__(self, datagen_kwargs, batch_size):
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+
+        self.train_dataset = datagen.flow_from_directory("data/RestrictedImageNet/train",
+                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
+        self.test_dataset = datagen.flow_from_directory("data/RestrictedImageNet/val",
+                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
+
+
+        self.input_shape = (160, 160, 3)
+        self.steps_per_epoch = len(self.train_dataset)
+        self.validation_steps = len(self.validation_steps)
+        self.nclasses = 9
+
+
 
 # to-do: define ImageNet, VGGFaces
 def show_available():
