@@ -7,7 +7,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2"]
+AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2", "RestrictedImageNet"]
 
 # default args
 vgg_dataset_kwargs = {
@@ -157,6 +157,8 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
         return CifarDataset(True, datagen_kwargs, batch_size)
     if arg == "VGGFace2":
         return VGGFaceTrainDataset(datagen_kwargs, batch_size, **kwargs)
+    if arg == "RestrictedImageNet":
+        return RestrictedImageNet(datagen_kwargs, batch_size)
     elif arg not in AVAILABLE_DATASETS:
         show_available()
         raise Exception(arg + " not an available dataset")
