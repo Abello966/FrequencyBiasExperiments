@@ -129,24 +129,22 @@ class VGGFaceTrainDataset():
 
 class RestrictedImageNetDataset():
 
-    def __init__(self, datagen_kwargs, batch_size):
+    def __init__(self, datagen_kwargs, batch_size, validation_split=0.1):
 
-        datagen = ImageDataGenerator(**datagen_kwargs)
+        datagen = ImageDataGenerator(**datagen_kwargs, validation_split=validation_split)
 
         self.train_dataset = datagen.flow_from_directory("data/RestrictedImageNet/train",
-                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
-        self.test_dataset = datagen.flow_from_directory("data/RestrictedImageNet/val",
-                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
+                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical", subset="training")
+        self.test_dataset = datagen.flow_from_directory("data/RestrictedImageNet/train",
+                        target_size=(160, 160), batch_size=batch_size, class_mode="categorical", subset="validation")
 
 
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(self.train_dataset)
-        self.validation_steps = len(self.validation_steps)
+        self.validation_steps = len(self.test_dataset)
         self.nclasses = 9
 
 
-
-# to-do: define ImageNet, VGGFaces
 def show_available():
     print("Available datasets:", ", ".join(AVAILABLE_DATASETS))
 
@@ -158,7 +156,7 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
     if arg == "VGGFace2":
         return VGGFaceTrainDataset(datagen_kwargs, batch_size, **kwargs)
     if arg == "RestrictedImageNet":
-        return RestrictedImageNet(datagen_kwargs, batch_size)
+        return RestrictedImageNetDataset(datagen_kwargs, batch_size)
     elif arg not in AVAILABLE_DATASETS:
         show_available()
         raise Exception(arg + " not an available dataset")
