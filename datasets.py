@@ -8,6 +8,7 @@ from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2", "RestrictedImageNet"]
+AVAILABLE_TESTS = ["RestrictedImageNet"]
 
 # default args
 vgg_dataset_kwargs = {
@@ -16,6 +17,35 @@ vgg_dataset_kwargs = {
     "path_col": "path",
     "class_col": "class",
     "test_samples": 2
+}
+
+# default datagen_kwargs
+default_datagen = {
+    "featurewise_center": False,  # set input mean to 0 over the dataset
+    "samplewise_center": True,  # set each sample mean to 0
+    "featurewise_std_normalization": False,  # divide inputs by std of the dataset
+    "samplewise_std_normalization": True,  # divide each input by its std
+    "zca_whitening":False,  # apply ZCA whitening
+    "zca_epsilon":1e-06,  # epsilon for ZCA whitening
+    "rotation_range":10,   # randomly rotate images in the range (degrees, 0 to 180)
+    # randomly shift images horizontally (fraction of total width)
+    "width_shift_range":0.1,
+    # randomly shift images vertically (fraction of total height)
+    "height_shift_range":0.1,
+    "shear_range":0.,  # set range for random shear
+    "zoom_range":0.05,  # set range for random zoom
+    "channel_shift_range":0.,  # set range for random channel shifts
+    # set mode for filling points outside the input boundaries
+    "fill_mode":'nearest',
+    "cval":0.,  # value used for fill_mode : "constant"
+    "horizontal_flip":True,  # randomly flip images
+    "vertical_flip":False,  # randomly flip images
+    # set rescaling factor (applied before any other transformation)
+    "rescale":None,
+    # set function that will be applied on each input
+    "preprocessing_function":None,
+    # image data format, either "channels_first" or "channels_last"
+    "data_format":"channels_last",
 }
 
 class CifarDataset():
@@ -75,20 +105,24 @@ def crop_generator(batches, crop_length):
 
 class VGGFaceTrainDataset():
 
-    def __init__(self, datagen_kwargs, batch_size, df_path=None, images_path=None, path_col=None, class_col=None, test_samples=None):
+    def __init__(self, datagen_kwargs, batch_size, df_path=None, images_path=None, path_col=None, class_col=None, test_frac=None):
 
         data = pd.read_csv(df_path)
         data[class_col] = data[class_col].astype("str")
         classlist = sorted(list(set(data[class_col])))
 
-        test_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(test_samples))
+        test_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
         test_dataset_df.index = test_dataset_df.index.droplevel()
-        test_dataset_df = test_dataset_df.iloc[:(len(test_dataset_df) // batch_size) * batch_size]
         train_dataset_df = data.loc[data.index.difference(test_dataset_df.index)]
 
         train_dataset_df.to_csv("data/VGGFace2_train_df.csv")
         test_dataset_df.to_csv("data/VGGFace2_test_df.csv")
 
+        val_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
+        val_dataset_df.index = val_dataset_df.index.droplevel()
+        val_dataset_df = val_dataset_df.iloc[:(len(val_dataset_df) // batch_size) * batch_size]
+        train_dataset_df = data.loc[data.index.difference(val_dataset_df.index)]
+        
         datagen = ImageDataGenerator(**datagen_kwargs)
 
         test_generator = lambda: datagen.flow_from_dataframe(
@@ -129,13 +163,13 @@ class VGGFaceTrainDataset():
 
 class RestrictedImageNetDataset():
 
-    def __init__(self, datagen_kwargs, batch_size):
+    def __init__(self, datagen_kwargs, batch_size, validation_size=0.1):
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
         self.train_dataset = datagen.flow_from_directory("data/RestrictedImageNet/train",
                         target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
-        self.test_dataset = datagen.flow_from_directory("data/RestrictedImageNet/val",
+        self.test_dataset = datagen.flow_from_directory("data/RestrictedImageNet/train",
                         target_size=(160, 160), batch_size=batch_size, class_mode="categorical")
 
 
@@ -144,11 +178,22 @@ class RestrictedImageNetDataset():
         self.validation_steps = len(self.validation_steps)
         self.nclasses = 9
 
+class RestrictedImageNetDatasetTest():
+    def __init__(self, datagen_kwargs):
+        datagen = ImageDataGenerator(**datagen_kwargs)
+        self.test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
+                        target_size=(160,160), batch_size=32, class_mode="categorical")
 
+        self.X_test, self.Y_test = next(self.test_datagen)
+        self.X_more, self.Y_more = [], []
+        for i in range(len(self.test_datagen) - 1):
+            more_X, more_Y = next(self.test_datagen)
+            self.X_more.append(more_X)
+            self.Y_more.append(more_Y)
 
 # to-do: define ImageNet, VGGFaces
-def show_available():
-    print("Available datasets:", ", ".join(AVAILABLE_DATASETS))
+def show_available(av_list):
+    print("Available datasets:", ", ".join(av_list))
 
 def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
     if arg == "CIFAR10":
@@ -160,5 +205,12 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
     if arg == "RestrictedImageNet":
         return RestrictedImageNet(datagen_kwargs, batch_size)
     elif arg not in AVAILABLE_DATASETS:
-        show_available()
+        show_available(AVAILABLE_DATASETS)
         raise Exception(arg + " not an available dataset")
+
+def get_test_dataset(arg, datagen_kwargs):
+    if arg == "RestrictedImageNet":
+        return RestrictedImageNetDatasetTest(datagen_kwargs)
+    else:
+        show_available(AVAILABLE_TESTS)
+        raise Exception(arg + " not an available test dataset")
