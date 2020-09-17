@@ -2,10 +2,12 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
 from tensorflow.data import Dataset
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.vgg16 import preprocess_input
 
 AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2", "RestrictedImageNet"]
 AVAILABLE_TESTS = ["RestrictedImageNet"]
@@ -50,29 +52,54 @@ default_datagen = {
 
 class CifarDataset():
     # extended: False for 10, True for 100
-    def __init__(self, extended, datagen_kwargs, batch_size):
+    def __init__(self, extended, datagen_kwargs, batch_size, val_split=0.1):
         if extended:
-            (X_train, Y_train), (X_test, Y_test) = cifar100.load_data()
+            (X_train, Y_train), (_, _) = cifar100.load_data()
             self.nclasses = 100
         else:
-            (X_train, Y_train), (X_test, Y_test) = cifar10.load_data()
+            (X_train, Y_train), (_, _) = cifar10.load_data()
+            self.nclasses = 10
+        
+        # Divide train/val
+        X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size=val_split, stratify=Y_train, random_state=2)
+        
+        # All our labels are categorical and all our images are floats
+        Y_train = to_categorical(Y_train)
+        Y_test = to_categorical(Y_test)
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+        X_train = datagen.standardize(X_train.astype(np.float32))
+        X_test = datagen.standardize(X_test.astype(np.float32))
+ 
+        self.input_shape = X_train.shape[1:]
+        self.train_dataset = Dataset.from_tensor_slices((X_train, Y_train)).batch(batch_size).repeat()
+        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
+        self.steps_per_epoch = X_train.shape[0] // batch_size
+        self.validation_steps = X_test.shape[0] // batch_size
+
+
+class CifarTestDataset():
+    # extended: False for 10, True for 100
+    def __init__(self, extended, datagen_kwargs, batch_size):
+        if extended:
+            (_, _), (X_test, Y_test) = cifar100.load_data()
+            self.nclasses = 100
+        else:
+            (_, _), (X_test, Y_test) = cifar10.load_data()
             self.nclasses = 10
 
         # All our images are floats from [0, 1)
-        X_train = X_train.astype(np.float32) / 255
         X_test = X_test.astype(np.float32) / 255
         # All our labels are categorical
-        Y_train = to_categorical(Y_train)
         Y_test = to_categorical(Y_test)
 
         datagen = ImageDataGenerator(**datagen_kwargs)
         X_test = datagen.standardize(X_test)
 
-        self.input_shape = X_train.shape[1:]
-        self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
         self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
         self.steps_per_epoch = X_train.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
+
 
 # Assumes VGGFaceDataset has already been preprocessed
 # So naturally every image has a 182x182 size
