@@ -1,7 +1,37 @@
+import gc
 import numpy as np
 import cv2
 from scipy import fftpack
 from skimage import color
+
+# normalize an image for range [0..1] for imshow
+def normalize_image(Xfr):
+    Xfr_norm = Xfr - np.min(Xfr)
+    Xfr_norm = Xfr_norm / np.max(Xfr_norm)
+    return Xfr_norm
+
+# Calculate the accuracy of mod in Xdatagen using an optional
+# preprocessing function preproc
+def get_accuracy_iterator(mod, Xdatagen, preproc=lambda x: x):
+    acc = 0
+    npoints = 0
+    for i in range(len(Xdatagen)):
+        Xfr, yfr = next(Xdatagen)
+        Xfr = preproc(Xfr)
+
+        ypred = mod.predict(Xfr)
+        yfr = np.argmax(yfr, axis=1)
+        ypred = np.argmax(ypred, axis=1)
+
+        npoints += len(yfr)
+        acc += np.sum(yfr == ypred)
+
+        del Xfr
+        del yfr
+        del ypred
+        gc.collect()
+
+    return acc / npoints
 
 # Calculate the empirical distribution of energy throughout the frequency spectra
 # of a dataset represented by Xfr (with shape (ex, width, height, channels))
@@ -15,6 +45,14 @@ def get_mean_energy_dataset(Xfr):
         avg_energy_fr += energy
     avg_energy_fr /= Xfr.shape[0]
     avg_energy_fr = fftpack.fftshift(avg_energy_fr)
+    return avg_energy_fr
+
+def get_mean_energy_iterator(Xdatagen):
+    avg_energy_fr = np.zeros(Xdatagen.image_shape[:-1])
+    for i in range(len(Xdatagen)):
+        Xfr, _ = next(Xdatagen)
+        avg_energy_fr += get_mean_energy_dataset(Xfr)
+    avg_energy_fr /= len(Xdatagen)
     return avg_energy_fr
 
 # Get a theoretical model of the distribution of energy
@@ -114,3 +152,6 @@ def remove_frequency_ring(image, radius1, radius2, multicolor=True):
     distorted = cv2.idft(freq, flags=cv2.DFT_SCALE + cv2.DFT_COMPLEX_INPUT)
     final = distorted[:, :, 0]
     return final
+
+def remove_frequency_ring_dataset(dataset, radius1, radius2):
+    return np.array([remove_frequency_ring(image, radius1, radius2, multicolor=True) for image in dataset])
