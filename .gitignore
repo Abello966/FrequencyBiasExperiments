@@ -2,6 +2,7 @@
 *__pycache__
 model_weights
 datasets
+*.pkl
 
 # never commit the real data
 data/VGGFaces2/*

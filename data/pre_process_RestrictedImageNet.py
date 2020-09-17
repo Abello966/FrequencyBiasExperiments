@@ -48,7 +48,7 @@ def preprocess_folder(division, groupclass, classname):
         image = Image.open(data[i])
         image = image.crop((xmin, ymin, xmax, ymax))
 
-        name = data[i].split("/")[-1]
+        name = data[i].split("/")[-1].split(".")[0] + ".png"
         image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)
 
 def preprocess_val(division, group_class_dict):
@@ -99,7 +99,7 @@ def preprocess_val(division, group_class_dict):
             image = Image.open(data[i])
             image = image.crop((xmin, ymin, xmax, ymax))
 
-            name = data[i].split("/")[-1]
+            name = data[i].split("/")[-1].split(".")[0] + ".png"
             image.save("RestrictedImageNet/" + division + "/" + groupclass + "/" + name)
 
 group_class = {
@@ -116,6 +116,7 @@ group_class = {
 
 group_class = {key: [convert_imagenet_number_name(x) for x in value] for key, value in group_class.items()}
 
+
 if not os.path.exists("RestrictedImageNet"):
     os.mkdir("RestrictedImageNet")
 
@@ -128,3 +129,4 @@ for key, value in group_class.items():
 
 print("Started preprocessing: val")
 preprocess_val("val", group_class)
+
