@@ -59,10 +59,10 @@ class CifarDataset():
         else:
             (X_train, Y_train), (_, _) = cifar10.load_data()
             self.nclasses = 10
-        
+
         # Divide train/val
         X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size=val_split, stratify=Y_train, random_state=2)
-        
+
         # All our labels are categorical and all our images are floats
         Y_train = to_categorical(Y_train)
         Y_test = to_categorical(Y_test)
@@ -70,7 +70,7 @@ class CifarDataset():
         datagen = ImageDataGenerator(**datagen_kwargs)
         X_train = datagen.standardize(X_train.astype(np.float32))
         X_test = datagen.standardize(X_test.astype(np.float32))
- 
+
         self.input_shape = X_train.shape[1:]
         self.train_dataset = Dataset.from_tensor_slices((X_train, Y_train)).batch(batch_size).repeat()
         self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
@@ -145,40 +145,27 @@ class VGGFaceTrainDataset():
         train_dataset_df.to_csv("data/VGGFace2_train_df.csv")
         test_dataset_df.to_csv("data/VGGFace2_test_df.csv")
 
-        val_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
-        val_dataset_df.index = val_dataset_df.index.droplevel()
-        val_dataset_df = val_dataset_df.iloc[:(len(val_dataset_df) // batch_size) * batch_size]
-        train_dataset_df = data.loc[data.index.difference(val_dataset_df.index)]
-        
-        datagen = ImageDataGenerator(**datagen_kwargs)
+        #val_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
+        #val_dataset_df.index = val_dataset_df.index.droplevel()
+        #val_dataset_df = val_dataset_df.iloc[:(len(val_dataset_df) // batch_size) * batch_size]
+        #train_dataset_df = data.loc[data.index.difference(val_dataset_df.index)]
 
-        test_generator = lambda: datagen.flow_from_dataframe(
-            val_dataset_df,
-            directory=images_path,
-            x_col=path_col,
-            y_col=class_col,
-            target_size=(182, 182),
-            classes=classlist,
-            batch_size=batch_size,
-            class_mode="categorical",
-            shuffle=True
-        )
-        self.test_dataset = Dataset.from_generator(lambda: crop_generator(test_generator(), 160),
-                                                  (tf.float32, tf.float32),
-                                                  (tf.TensorShape([batch_size, 160, 160, 3]), tf.TensorShape([batch_size, len(classlist)])))
+        datagen = ImageDataGenerator(validation_split=test_frac, **datagen_kwargs)
 
-        train_generator = lambda: datagen.flow_from_dataframe(
+        master_generator = lambda split: datagen.flow_from_dataframe(
             train_dataset_df,
             directory=images_path,
             x_col=path_col,
             y_col=class_col,
-            target_size=(182, 182),
+            target_size=(160, 160),
             classes=classlist,
-            class_mode="categorical",
             batch_size=batch_size,
+            class_mode="categorical",
+            subset=split,
             shuffle=True
         )
-        self.train_dataset = crop_generator(train_generator(), 160)
+        self.test_dataset = master_generator("validation")
+        self.train_dataset = master_generator("training")
 
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
