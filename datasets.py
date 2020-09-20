@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import datetime
 from sklearn.model_selection import train_test_split
 from tensorflow.data import Dataset
 from tensorflow.keras.utils import to_categorical
@@ -142,8 +143,8 @@ class VGGFaceTrainDataset():
         test_dataset_df.index = test_dataset_df.index.droplevel()
         train_dataset_df = data.loc[data.index.difference(test_dataset_df.index)]
 
-        train_dataset_df.to_csv("data/VGGFace2_train_df.csv")
-        test_dataset_df.to_csv("data/VGGFace2_test_df.csv")
+        train_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_train_df.csv")
+        test_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_test_df.csv")
 
         #val_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
         #val_dataset_df.index = val_dataset_df.index.droplevel()
