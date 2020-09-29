@@ -97,7 +97,7 @@ class CifarTestDataset():
         datagen = ImageDataGenerator(**datagen_kwargs)
         X_test = datagen.standardize(X_test)
 
-        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
+        self.test_datagen = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
         self.steps_per_epoch = X_train.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
 
@@ -218,17 +218,11 @@ class RestrictedImageNetDataset():
         self.nclasses = 9
 
 class RestrictedImageNetDatasetTest():
-    def __init__(self, datagen_kwargs):
+    def __init__(self, datagen_kwargs, batch_size):
         datagen = ImageDataGenerator(**datagen_kwargs)
         self.test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
-                        target_size=(160,160), batch_size=32, class_mode="categorical")
+                        target_size=(160,160), batch_size=batch_size, class_mode="categorical")
 
-        self.X_test, self.Y_test = next(self.test_datagen)
-        self.X_more, self.Y_more = [], []
-        for i in range(len(self.test_datagen) - 1):
-            more_X, more_Y = next(self.test_datagen)
-            self.X_more.append(more_X)
-            self.Y_more.append(more_Y)
 
 def show_available(av_list):
     print("Available datasets:", ", ".join(av_list))
@@ -251,6 +245,8 @@ def get_test_dataset(arg, datagen_kwargs, **kwargs):
         return RestrictedImageNetDatasetTest(datagen_kwargs)
     elif arg == "VGGFace2":
         return VGGFaceTestDataset(datagen_kwargs, **kwargs)
+    if arg == "RestrictedImageNet":
+        return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size)
     else:
         show_available(AVAILABLE_TESTS)
         raise Exception(arg + " not an available test dataset")
