@@ -168,8 +168,32 @@ class VGGFaceTrainDataset():
         self.steps_per_epoch = len(train_dataset_df) // batch_size
         self.nclasses = len(classlist)
 
-# A test dataset will be fully loaded and also has different logic (not classification but FR)
-# class VGGFaceTestDataset
+class VGGFaceTestDataset():
+     def __init__(self, datagen_kwargs, batch_size=32, df_path=None, df_test_path=None, images_path=None, path_col=None, class_col=None):
+        # we need the full classlist in case there is a class missing on the test set
+        data = pd.read_csv(df_path)
+        data[class_col] = data[class_col].astype("str")
+        classlist = sorted(list(set(data[class_col])))
+
+        test_data = pd.read_csv(df_test_path)
+        test_data[class_col] = test_data[class_col].astype("str")
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+
+        self.dataset = datagen.flow_from_dataframe(
+            test_data,
+            directory=images_path,
+            x_col=path_col,
+            y_col=class_col,
+            target_size=(160, 160),
+            classes=classlist,
+            batch_size=batch_size,
+            class_mode="categorical",
+            shuffle=True
+        )
+
+        self.input_shape = (160, 160, 3)
+        self.nclasses = len(classlist)
 
 class RestrictedImageNetDataset():
 
@@ -211,7 +235,11 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
         show_available(AVAILABLE_DATASETS)
         raise Exception(arg + " not an available dataset")
 
-def get_test_dataset(arg, datagen_kwargs, batch_size):
+def get_test_dataset(arg, datagen_kwargs, **kwargs):
+    if arg == "RestrictedImageNet":
+        return RestrictedImageNetDatasetTest(datagen_kwargs)
+    elif arg == "VGGFace2":
+        return VGGFaceTestDataset(datagen_kwargs, **kwargs)
     if arg == "RestrictedImageNet":
         return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size)
     else:
