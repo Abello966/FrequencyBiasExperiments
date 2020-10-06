@@ -131,27 +131,24 @@ def crop_generator(batches, crop_length):
 
         yield (batch_x_crop, batch_y)
 
+def train_test_split_VGG(df_path, class_col, random_seed=0):
+    data = pd.read_csv(df_path)
+
+    test_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac, random_state=random_seed))
+    test_dataset_df.index = test_dataset_df.index.droplevel()
+    train_dataset_df = data.loc[data.index.difference(test_dataset_df.index)]
+
+    train_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_train_df.csv")
+    test_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_test_df.csv")
+
 class VGGFaceTrainDataset():
 
     def __init__(self, datagen_kwargs, batch_size, df_path=None, images_path=None, path_col=None, class_col=None, test_frac=None):
+        train_dataset_df = pd.read_csv(df_path)
+        train_dataset_df[class_col] = train_dataset_df[class_col].astype("str")
+        classlist = sorted(list(set(train_dataset_df[class_col])))
 
-        data = pd.read_csv(df_path)
-        data[class_col] = data[class_col].astype("str")
-        classlist = sorted(list(set(data[class_col])))
-
-        test_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
-        test_dataset_df.index = test_dataset_df.index.droplevel()
-        train_dataset_df = data.loc[data.index.difference(test_dataset_df.index)]
-
-        train_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_train_df.csv")
-        test_dataset_df.to_csv("data/" + str(datetime.date.today()) + "_VGGFace2_test_df.csv")
-
-        #val_dataset_df = data.groupby(class_col).apply(lambda x: x.sample(frac=test_frac))
-        #val_dataset_df.index = val_dataset_df.index.droplevel()
-        #val_dataset_df = val_dataset_df.iloc[:(len(val_dataset_df) // batch_size) * batch_size]
-        #train_dataset_df = data.loc[data.index.difference(val_dataset_df.index)]
-
-        datagen = ImageDataGenerator(validation_split=test_frac, **datagen_kwargs)
+        datagen = ImageDataGenerator(**datagen_kwargs)
 
         master_generator = lambda split: datagen.flow_from_dataframe(
             train_dataset_df,
@@ -165,12 +162,10 @@ class VGGFaceTrainDataset():
             subset=split,
             shuffle=True
         )
-        self.test_dataset = master_generator("validation")
+        )
         self.train_dataset = master_generator("training")
-
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
-        self.validation_steps = len(test_dataset_df) // batch_size
         self.nclasses = len(classlist)
 
 # A test dataset will be fully loaded and also has different logic (not classification but FR)

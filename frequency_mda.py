@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow.keras as kr
 import sys
+import pickle as pkl
 
 def show_use_and_exit():
     print("Use: python3 frequency_mda.py DATASET_NAME MODEL_NAME PERCENT BATCH")
@@ -59,5 +60,6 @@ print("Perturbed Acc:", removed_acc)
 output = dict()
 output["percent_range"] = percent_range
 output["removed_acc"] = removed_acc
+output["baseline_acc"] = baseline_acc
 
 pkl.dump(output, open(MODEL_NAME +"_MDA.pkl", "wb"))
