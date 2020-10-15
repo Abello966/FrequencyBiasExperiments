@@ -25,8 +25,8 @@ for device in gpu_devices:
 if len(sys.argv) != 5:
     show_use_and_exit()
 
-DATASET_NAME = sys.argv[1]
-MODEL_NAME = sys.argv[2]
+MODEL_NAME = sys.argv[1]
+DATASET_NAME = sys.argv[2]
 try:
     PERCENT = float(sys.argv[3])
 except Exception as e:
@@ -39,9 +39,21 @@ except Exception as e:
 print("STARTING FREQUENCY_MDA")
 print(MODEL_NAME, "on", DATASET_NAME, "with", PERCENT, " percent and batch", BATCH_SIZE)
 
+vgg_dataset_kwargs = {
+    "df_path": "data/2020-09-20_VGGFace2_test_df.csv",
+    "images_path": "data/VGGFaces2/",
+    "path_col": "path",
+    "class_col": "class",
+}
+
+
 # load dataset and get empirical distribution
-dataset = datasets.get_test_dataset(DATASET_NAME, datasets.default_datagen, BATCH_SIZE)
-emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen)
+if DATASET_NAME == "VGGFace2":
+    datagen_kwargs = vgg_dataset_kwargs
+else:
+    datagen_kwargs = {}
+dataset = datasets.get_test_dataset(DATASET_NAME, datasets.default_test_datagen, BATCH_SIZE, **datagen_kwargs)
+emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen, dataset.input_shape)
 percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 
 # load model and calculate baseline
@@ -52,7 +64,9 @@ print("Baseline Acc:", baseline_acc)
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring_dataset(Xfr, percent_range[i], percent_range[i + 1])
-    removed_acc.append(utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc))
+    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc)
+    print(percent_range[i], "-", percent_range[i + 1], ":", this_mda)
+    removed_acc.append(this_mda)
 
 print("MDA:")
 print("Percent Range:", percent_range)

@@ -11,7 +11,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications.vgg16 import preprocess_input
 
 AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2", "RestrictedImageNet"]
-AVAILABLE_TESTS = ["RestrictedImageNet"]
+AVAILABLE_TESTS = ["CIFAR10", "CIFAR100", "RestrictedImageNet", "VGGFace2"]
 
 # default args
 vgg_dataset_kwargs = {
@@ -50,6 +50,35 @@ default_datagen = {
     # image data format, either "channels_first" or "channels_last"
     "data_format":"channels_last",
 }
+
+default_test_datagen = {
+    "featurewise_center": False,  # set input mean to 0 over the dataset
+    "samplewise_center": True,  # set each sample mean to 0
+    "featurewise_std_normalization": False,  # divide inputs by std of the dataset
+    "samplewise_std_normalization": True,  # divide each input by its std
+    "zca_whitening":False,  # apply ZCA whitening
+    "zca_epsilon":1e-06,  # epsilon for ZCA whitening
+    "rotation_range":0,   # randomly rotate images in the range (degrees, 0 to 180)
+    # randomly shift images horizontally (fraction of total width)
+    "width_shift_range":0,
+    # randomly shift images vertically (fraction of total height)
+    "height_shift_range":0,
+    "shear_range":0.,  # set range for random shear
+    "zoom_range":0,  # set range for random zoom
+    "channel_shift_range":0.,  # set range for random channel shifts
+    # set mode for filling points outside the input boundaries
+    "fill_mode":'nearest',
+    "cval":0.,  # value used for fill_mode : "constant"
+    "horizontal_flip":False,  # randomly flip images
+    "vertical_flip":False,  # randomly flip images
+    # set rescaling factor (applied before any other transformation)
+    "rescale":None,
+    # set function that will be applied on each input
+    "preprocessing_function":None,
+    # image data format, either "channels_first" or "channels_last"
+    "data_format":"channels_last",
+}
+
 
 class CifarDataset():
     # extended: False for 10, True for 100
@@ -95,10 +124,10 @@ class CifarTestDataset():
         Y_test = to_categorical(Y_test)
 
         datagen = ImageDataGenerator(**datagen_kwargs)
-        X_test = datagen.standardize(X_test)
 
-        self.test_datagen = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
-        self.steps_per_epoch = X_train.shape[0] // batch_size
+        self.test_datagen = datagen.flow(X_test, Y_test, batch_size=batch_size)
+        self.input_shape = X_test.shape[1:]
+        self.steps_per_epoch = X_test.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
 
 
@@ -150,7 +179,7 @@ class VGGFaceTrainDataset():
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
-        master_generator = lambda split: datagen.flow_from_dataframe(
+        master_generator = datagen.flow_from_dataframe(
             train_dataset_df,
             directory=images_path,
             x_col=path_col,
@@ -159,28 +188,23 @@ class VGGFaceTrainDataset():
             classes=classlist,
             batch_size=batch_size,
             class_mode="categorical",
-            subset=split,
             shuffle=True
         )
-        )
-        self.train_dataset = master_generator("training")
+        
+        self.train_dataset = master_generator
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
         self.nclasses = len(classlist)
 
 class VGGFaceTestDataset():
-     def __init__(self, datagen_kwargs, batch_size=32, df_path=None, df_test_path=None, images_path=None, path_col=None, class_col=None):
-        # we need the full classlist in case there is a class missing on the test set
-        data = pd.read_csv(df_path)
-        data[class_col] = data[class_col].astype("str")
-        classlist = sorted(list(set(data[class_col])))
-
-        test_data = pd.read_csv(df_test_path)
+     def __init__(self, datagen_kwargs, batch_size=32, df_path=None, images_path=None, path_col=None, class_col=None):
+        test_data = pd.read_csv(df_path)
         test_data[class_col] = test_data[class_col].astype("str")
+        classlist = sorted(list(set(test_data[class_col])))
 
         datagen = ImageDataGenerator(**datagen_kwargs)
 
-        self.dataset = datagen.flow_from_dataframe(
+        self.test_datagen = datagen.flow_from_dataframe(
             test_data,
             directory=images_path,
             x_col=path_col,
@@ -235,12 +259,14 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
         show_available(AVAILABLE_DATASETS)
         raise Exception(arg + " not an available dataset")
 
-def get_test_dataset(arg, datagen_kwargs, **kwargs):
-    if arg == "RestrictedImageNet":
-        return RestrictedImageNetDatasetTest(datagen_kwargs)
-    elif arg == "VGGFace2":
-        return VGGFaceTestDataset(datagen_kwargs, **kwargs)
-    if arg == "RestrictedImageNet":
+def get_test_dataset(arg, datagen_kwargs, batch_size, **kwargs):
+    if arg == "VGGFace2":
+        return VGGFaceTestDataset(datagen_kwargs, batch_size, **kwargs)
+    elif arg == "CIFAR10":
+        return CifarTestDataset(False, datagen_kwargs, batch_size)
+    elif arg == "CIFAR100":
+        return CifarTestDataset(True, datagen_kwargs, batch_size)
+    elif arg == "RestrictedImageNet":
         return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size)
     else:
         show_available(AVAILABLE_TESTS)

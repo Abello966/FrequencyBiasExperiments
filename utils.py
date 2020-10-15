@@ -47,9 +47,9 @@ def get_mean_energy_dataset(Xfr):
     avg_energy_fr = fftpack.fftshift(avg_energy_fr)
     return avg_energy_fr
 
-def get_mean_energy_iterator(Xdatagen):
-    avg_energy_fr = np.zeros(Xdatagen.image_shape[:-1])
-    for i in range(len(Xdatagen)):
+def get_mean_energy_iterator(Xdatagen, input_shape):
+    avg_energy_fr = np.zeros(input_shape[:-1])
+    for i in range(len(Xdatagen) - 1):
         Xfr, _ = next(Xdatagen)
         avg_energy_fr += get_mean_energy_dataset(Xfr)
     avg_energy_fr /= len(Xdatagen)
