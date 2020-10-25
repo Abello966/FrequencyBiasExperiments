@@ -3,6 +3,7 @@ import tensorflow.keras as kr
 
 from tensorflow.keras.applications import InceptionResNetV2
 from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications import ResNet152
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.applications.vgg19 import VGG19
 
@@ -193,6 +194,8 @@ def get_arch(arg, input_shape, classes, **kwargs):
         return VGG19(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "ResNet50":
         return LocalResNet50(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+    elif arg == "ResNet152":
+        return ResNet152(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "CifarResNet":
         return CifarResNet(5, input_tensor=input_tensor, classes=classes)
     elif arg == "InceptionResNetV2":

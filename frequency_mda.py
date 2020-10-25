@@ -22,7 +22,7 @@ gpu_devices = tf.config.experimental.list_physical_devices('GPU')
 for device in gpu_devices:
     tf.config.experimental.set_memory_growth(device, True)
 
-if len(sys.argv) != 5:
+if len(sys.argv) < 5:
     show_use_and_exit()
 
 MODEL_NAME = sys.argv[1]
@@ -35,6 +35,11 @@ try:
     BATCH_SIZE = int(sys.argv[4])
 except Exception as e:
     show_use_and_exit()
+
+if len(sys.argv) >= 6:
+    K = int(sys.argv[5])
+else:
+    K = 1
 
 print("STARTING FREQUENCY_MDA")
 print(MODEL_NAME, "on", DATASET_NAME, "with", PERCENT, " percent and batch", BATCH_SIZE)
@@ -57,14 +62,14 @@ emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen, dataset.input_sh
 percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 
 # load model and calculate baseline
-mod = kr.models.load_model("model_weights/" + MODEL_NAME)
-baseline_acc = utils.get_accuracy_iterator(mod, dataset.test_datagen)
+mod = kr.models.load_model(MODEL_NAME)
+baseline_acc = utils.get_accuracy_iterator(mod, dataset.test_datagen, k=K)
 print("Baseline Acc:", baseline_acc)
 
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring_dataset(Xfr, percent_range[i], percent_range[i + 1])
-    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc)
+    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc, k=K)
     print(percent_range[i], "-", percent_range[i + 1], ":", this_mda)
     removed_acc.append(this_mda)
 
@@ -76,4 +81,4 @@ output["percent_range"] = percent_range
 output["removed_acc"] = removed_acc
 output["baseline_acc"] = baseline_acc
 
-pkl.dump(output, open(MODEL_NAME +"_MDA.pkl", "wb"))
+pkl.dump(output, open(MODEL_NAME.split("/")[-1] +"_MDA.pkl", "wb"))

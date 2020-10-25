@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from scipy import fftpack
 from skimage import color
+from tensorflow.keras.metrics import top_k_categorical_accuracy
 
 # normalize an image for range [0..1] for imshow
 def normalize_image(Xfr):
@@ -12,7 +13,7 @@ def normalize_image(Xfr):
 
 # Calculate the accuracy of mod in Xdatagen using an optional
 # preprocessing function preproc
-def get_accuracy_iterator(mod, Xdatagen, preproc=lambda x: x):
+def get_accuracy_iterator(mod, Xdatagen, k=1, preproc=lambda x: x):
     acc = 0
     npoints = 0
     for i in range(len(Xdatagen)):
@@ -20,11 +21,8 @@ def get_accuracy_iterator(mod, Xdatagen, preproc=lambda x: x):
         Xfr = preproc(Xfr)
 
         ypred = mod.predict(Xfr)
-        yfr = np.argmax(yfr, axis=1)
-        ypred = np.argmax(ypred, axis=1)
-
         npoints += len(yfr)
-        acc += np.sum(yfr == ypred)
+        acc += np.sum(top_k_categorical_accuracy(yfr, ypred, k=k))
 
         del Xfr
         del yfr
