@@ -4,12 +4,32 @@ import cv2
 from scipy import fftpack
 from skimage import color
 from tensorflow.keras.metrics import top_k_categorical_accuracy
+from tensorflow.keras.losses import CategoricalCrossentropy
 
 # normalize an image for range [0..1] for imshow
 def normalize_image(Xfr):
     Xfr_norm = Xfr - np.min(Xfr)
     Xfr_norm = Xfr_norm / np.max(Xfr_norm)
     return Xfr_norm
+
+
+def get_crossentropy_iterator(mod, Xdatagen, preproc=lambda x: x):
+    cce = CategoricalCrossentropy()
+    loss = 0
+    npoints = 0
+    for i in range(len(Xdatagen)):
+        Xfr, yfr = next(Xdatagen)
+        Xfr = preproc(Xfr)
+
+        ypred = mod.predict(Xfr)
+        npoints += len(yfr)
+        loss += cce(ypred, yfr)
+
+        del Xfr
+        del yfr
+        del ypred
+        gc.collect()
+    return loss / npoints
 
 # Calculate the accuracy of mod in Xdatagen using an optional
 # preprocessing function preproc

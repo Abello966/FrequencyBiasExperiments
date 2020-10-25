@@ -63,13 +63,13 @@ percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 
 # load model and calculate baseline
 mod = kr.models.load_model(MODEL_NAME)
-baseline_acc = utils.get_accuracy_iterator(mod, dataset.test_datagen, k=K)
+baseline_acc = utils.get_crossentropy_iterator(mod, dataset.test_datagen, k=K)
 print("Baseline Acc:", baseline_acc)
 
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring_dataset(Xfr, percent_range[i], percent_range[i + 1])
-    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc, k=K)
+    this_mda = utils.get_crossentropy_iterator(mod, dataset.test_datagen, preproc=preproc, k=K)
     print(percent_range[i], "-", percent_range[i + 1], ":", this_mda)
     removed_acc.append(this_mda)
 
@@ -81,4 +81,4 @@ output["percent_range"] = percent_range
 output["removed_acc"] = removed_acc
 output["baseline_acc"] = baseline_acc
 
-pkl.dump(output, open(MODEL_NAME.split("/")[-1] +"_MDA.pkl", "wb"))
+pkl.dump(output, open(MODEL_NAME.split("/")[-1] +"_MDCE.pkl", "wb"))
