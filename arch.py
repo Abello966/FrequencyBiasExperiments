@@ -138,6 +138,7 @@ def CifarResNet(n, input_tensor=None, classes=1000, Normalization=BatchNormaliza
         x = CifarResNetBlock(x, 64, Normalization)
 
     x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.5)(x)
     x = Dense(classes, activation="softmax", kernel_regularizer=l2(1e-4))(x)
     return Model(inputs=input_tensor, outputs=x)
     
@@ -197,7 +198,7 @@ def get_arch(arg, input_shape, classes, **kwargs):
     elif arg == "ResNet152":
         return ResNet152(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "CifarResNet":
-        return CifarResNet(5, input_tensor=input_tensor, classes=classes)
+        return CifarResNet(2, input_tensor=input_tensor, classes=classes)
     elif arg == "InceptionResNetV2":
         return InceptionResNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     else:
