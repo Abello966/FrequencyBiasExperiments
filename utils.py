@@ -23,7 +23,7 @@ def get_crossentropy_iterator(mod, Xdatagen, preproc=lambda x: x):
 
         ypred = mod.predict(Xfr)
         npoints += len(yfr)
-        loss += cce(ypred, yfr)
+        loss += cce(ypred, yfr).numpy()
 
         del Xfr
         del yfr

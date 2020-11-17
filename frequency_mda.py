@@ -9,12 +9,22 @@ import sys
 import pickle as pkl
 
 def show_use_and_exit():
-    print("Use: python3 frequency_mda.py DATASET_NAME MODEL_NAME PERCENT BATCH")
-    print("perform MDA with test dataset DATASET_NAME on given MODEL_NAME")
+    print("Use: python3 frequency_mda.py MODEL_NAME DATASET_NAME PERCENT BATCH")
+    print("perform MDA on MODEL_NAME at DATASET_NAME")
     print("DATASET_NAME: available test dataset")
     print("MODEL_NAME: Keras model path")
-    print("PERCENT: ")
+    print("PERCENT: size of frequency disc ring ")
+    print("BATCH: batch size the model was trained with")
     sys.exit()
+
+cifar_datagen_kwargs = {
+    # randomly shift images horizontally (fraction of total width)
+    "width_shift_range":0.1,
+    # randomly shift images vertically (fraction of total height)
+    "height_shift_range":0.1,
+    "horizontal_flip":True,  # randomly flip images
+}
+
 
 # magic
 tf.keras.backend.set_floatx('float32')
@@ -54,22 +64,28 @@ vgg_dataset_kwargs = {
 
 # load dataset and get empirical distribution
 if DATASET_NAME == "VGGFace2":
-    datagen_kwargs = vgg_dataset_kwargs
+    dataset_kwargs = vgg_dataset_kwargs
 else:
-    datagen_kwargs = {}
-dataset = datasets.get_test_dataset(DATASET_NAME, datasets.default_test_datagen, BATCH_SIZE, **datagen_kwargs)
+    dataset_kwargs = {}
+
+if DATASET_NAME == "CIFAR10":
+    datagen_kwargs = cifar_datagen_kwargs
+else:
+    datagen_kwargs = dataset.test_datagen
+
+dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
 emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen, dataset.input_shape)
 percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 
 # load model and calculate baseline
 mod = kr.models.load_model(MODEL_NAME)
-baseline_acc = utils.get_crossentropy_iterator(mod, dataset.test_datagen, k=K)
+baseline_acc = utils.get_accuracy_iterator(mod, dataset.test_datagen)
 print("Baseline Acc:", baseline_acc)
 
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring_dataset(Xfr, percent_range[i], percent_range[i + 1])
-    this_mda = utils.get_crossentropy_iterator(mod, dataset.test_datagen, preproc=preproc, k=K)
+    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc)
     print(percent_range[i], "-", percent_range[i + 1], ":", this_mda)
     removed_acc.append(this_mda)
 
@@ -81,4 +97,4 @@ output["percent_range"] = percent_range
 output["removed_acc"] = removed_acc
 output["baseline_acc"] = baseline_acc
 
-pkl.dump(output, open(MODEL_NAME.split("/")[-1] +"_MDCE.pkl", "wb"))
+pkl.dump(output, open(MODEL_NAME.split("/")[-1] +"_MDA.pkl", "wb"))

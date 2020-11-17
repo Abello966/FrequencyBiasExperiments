@@ -27,7 +27,7 @@ default_datagen = {
     "featurewise_center": False,  # set input mean to 0 over the dataset
     "samplewise_center": True,  # set each sample mean to 0
     "featurewise_std_normalization": False,  # divide inputs by std of the dataset
-    "samplewise_std_normalization": True,  # divide each input by its std
+    "samplewise_std_normalization": False,  # divide each input by its std
     "zca_whitening":False,  # apply ZCA whitening
     "zca_epsilon":1e-06,  # epsilon for ZCA whitening
     "rotation_range":10,   # randomly rotate images in the range (degrees, 0 to 180)
@@ -93,17 +93,19 @@ class CifarDataset():
         # Divide train/val
         X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size=val_split, stratify=Y_train, random_state=2)
 
+        X_train = X_train / 255
+        X_test = X_test / 255
+
         # All our labels are categorical and all our images are floats
         Y_train = to_categorical(Y_train)
         Y_test = to_categorical(Y_test)
 
         datagen = ImageDataGenerator(**datagen_kwargs)
-        X_train = datagen.standardize(X_train.astype(np.float32))
-        X_test = datagen.standardize(X_test.astype(np.float32))
+        datagen_for_test = ImageDataGenerator()
 
         self.input_shape = X_train.shape[1:]
-        self.train_dataset = Dataset.from_tensor_slices((X_train, Y_train)).batch(batch_size).repeat()
-        self.test_dataset = Dataset.from_tensor_slices((X_test, Y_test)).batch(batch_size)
+        self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size) 
+        self.test_dataset = datagen_for_test.flow(X_test, Y_test, batch_size=batch_size)
         self.steps_per_epoch = X_train.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
 
@@ -242,6 +244,7 @@ class RestrictedImageNetDatasetTest():
         self.test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
                         target_size=(160,160), batch_size=batch_size, class_mode="categorical")
 
+        self.input_shape = (160, 160, 3)
 
 def show_available(av_list):
     print("Available datasets:", ", ".join(av_list))

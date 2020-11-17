@@ -1,21 +1,22 @@
 import tensorflow as tf
 import tensorflow.keras as kr
 
-from tensorflow.keras.applications import InceptionResNetV2
+from tensorflow.keras.applications import DenseNet169
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications import ResNet152
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.applications.vgg19 import VGG19
+from tensorflow.keras.applications import MobileNetV2
 
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-from tensorflow.keras.layers import ReLU, Lambda, Dropout, Add, GlobalAveragePooling2D
+from tensorflow.keras.layers import ReLU, Lambda, Dropout, Add, GlobalAveragePooling2D, AveragePooling2D
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import BatchNormalization, LayerNormalization
 
 NoNormalization = lambda: Lambda(lambda x: x)
 
-AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "InceptionResNetV2"]
+AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "DenseNet169"]
 
 def SmolAlexNet(input_tensor=None, classes=1000, Normalization=NoNormalization):
     x = Conv2D(96, 11, padding="valid", activation="relu")(input_tensor)
@@ -108,14 +109,16 @@ def ResBlockB(x, num, norm_layer):
 
     return x
 
-def CifarResNetBlock(x, nfilters, norm_layer):
-    conv1 = Conv2D(nfilters, 3, padding="same", kernel_regularizer=l2(1e-4))(x)
+def CifarResNetBlock(x, nfilters, norm_layer, strides=1):
+    conv1 = Conv2D(nfilters, 3, strides=strides, padding="same", kernel_initializer="he_normal", kernel_regularizer=l2(1e-4))(x)
     conv1 = norm_layer()(conv1)
     conv1 = ReLU()(conv1)
 
-    conv2 = Conv2D(nfilters, 3, padding="same", kernel_regularizer=l2(1e-4))(conv1)
+    conv2 = Conv2D(nfilters, 3, padding="same", kernel_initializer="he_normal", kernel_regularizer=l2(1e-4))(conv1)
     conv2 = norm_layer()(conv2)
-    conv2 = ReLU()(conv2)
+
+    if strides == 2:
+        x = Conv2D(nfilters, 1, strides=strides, padding="same", kernel_initializer="he_normal", kernel_regularizer=l2(1e-4))(x)
     
     x = Add()([conv2, x])
     x = ReLU()(x)
@@ -126,19 +129,19 @@ def CifarResNet(n, input_tensor=None, classes=1000, Normalization=BatchNormaliza
     x = Normalization()(x)
     x = ReLU()(x)
 
-    for i in range(2 * n):
+    for i in range(n):
         x = CifarResNetBlock(x, 16, Normalization)
 
-    x = Conv2D(32, 3, strides=2, padding="valid", kernel_regularizer=l2(1e-4))(x)
+    x = CifarResNetBlock(x, 32, Normalization, strides=2)
     for i in range(n - 1):
         x = CifarResNetBlock(x, 32, Normalization)
 
-    x = Conv2D(64, 3, strides=2, padding="valid", kernel_regularizer=l2(1e-4))(x)
+    x = CifarResNetBlock(x, 64, Normalization, strides=2)
     for i in range(n - 1):
         x = CifarResNetBlock(x, 64, Normalization)
 
-    x = GlobalAveragePooling2D()(x)
-    x = Dropout(0.5)(x)
+    x = AveragePooling2D(pool_size=8)(x)
+    x = Flatten()(x)
     x = Dense(classes, activation="softmax", kernel_regularizer=l2(1e-4))(x)
     return Model(inputs=input_tensor, outputs=x)
     
@@ -198,9 +201,9 @@ def get_arch(arg, input_shape, classes, **kwargs):
     elif arg == "ResNet152":
         return ResNet152(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "CifarResNet":
-        return CifarResNet(2, input_tensor=input_tensor, classes=classes)
-    elif arg == "InceptionResNetV2":
-        return InceptionResNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+        return CifarResNet(3, input_tensor=input_tensor, classes=classes)
+    elif arg == "DenseNet169":
+        return DenseNet169(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     else:
         show_available()
         raise Exception(arg + " not an available architecture")
