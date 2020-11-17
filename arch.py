@@ -10,7 +10,7 @@ from tensorflow.keras.applications import MobileNetV2
 
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-from tensorflow.keras.layers import ReLU, Lambda, Dropout, Add, GlobalAveragePooling2D, AveragePooling2D
+from tensorflow.keras.layers import ReLU, Lambda, Dropout, Add, GlobalAveragePooling2D, AveragePooling2D, Concatenate
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import BatchNormalization, LayerNormalization
 
@@ -170,6 +170,48 @@ def SmolResNet50(input_tensor=None, classes=1000, Normalization=BatchNormalizati
     x = Dense(classes, activation="softmax")(x)
     return Model(inputs=input_tensor, outputs=x)
 
+# num_filters: k in the paper
+# num_layers: l in the paper
+def DenseBlock(x, num_filters, num_layers):
+    temp = x
+    for _ in range(num_layers):
+        x = BatchNormalization()(x)
+        x = Activation("relu")(x)
+        x = Conv2D(num_filters, (3, 3), use_bias=False, padding="same")(x)
+        x = Dropout(0.2)(x)
+        temp = Concatenate(axis=-1)([temp, x])
+    return temp
+
+def TransitionBlock(x, num_filters):
+    x = BatchNormalization()(x)
+    x = Activation("relu")(x)
+    x = Conv2D(num_filters, (1, 1), use_bias=False)
+    x = Dropout(0.2)(x)
+    x = AveragePooling2D(pool_size=(2, 2))(x)
+    return x
+
+# Terminology from paper: k "growth rate": num of filters
+#                         l: number of layers per denseblock
+def DenseNetCifar(input_tensor, classes, k, l):
+    x = Conv2D(k, (3, 3), use_bias=False, padding="same")(input_tensor)
+    # Three Dense-blocks with same num of layers
+    x = DenseBlock(x, k, l)
+    x = TransitionBlock(x, k)
+
+    x = DenseBlock(x, k, l)
+    x = TransitionBlock(x, k)
+
+    x = DenseBlock(x, k, l)
+    x = TransitionBlock(x, k)
+
+    x = BatchNormalization()(x)
+    x = Activarion("relu")(x)
+    x = AveragePooling2D(pool_size=(2, 2))(x)
+    x = Flatten()(x)
+    x = Dense(classes, activation="softmax")(x)
+
+    return Model(inputs=input_tensor, outputs=x)
+
 def show_available():
     print("Available architectures:", ", ".join(AVAILABLE_ARCHS))
 
@@ -204,6 +246,8 @@ def get_arch(arg, input_shape, classes, **kwargs):
         return CifarResNet(3, input_tensor=input_tensor, classes=classes)
     elif arg == "DenseNet169":
         return DenseNet169(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+    elif arg == "DenseNetCifar":
+        return DenseNetCifar(input_tensor, classes, 12, 12)
     else:
         show_available()
         raise Exception(arg + " not an available architecture")
