@@ -16,7 +16,7 @@ from tensorflow.keras.layers import BatchNormalization, LayerNormalization
 
 NoNormalization = lambda: Lambda(lambda x: x)
 
-AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "DenseNet169"]
+AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "DenseNet169", "MobileNetV2"]
 
 def SmolAlexNet(input_tensor=None, classes=1000, Normalization=NoNormalization):
     x = Conv2D(96, 11, padding="valid", activation="relu")(input_tensor)
@@ -204,6 +204,8 @@ def get_arch(arg, input_shape, classes, **kwargs):
         return CifarResNet(3, input_tensor=input_tensor, classes=classes)
     elif arg == "DenseNet169":
         return DenseNet169(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+    elif arg == "MobileNetV2":
+        return MobileNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     else:
         show_available()
         raise Exception(arg + " not an available architecture")
