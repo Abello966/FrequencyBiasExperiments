@@ -175,8 +175,8 @@ def SmolResNet50(input_tensor=None, classes=1000, Normalization=BatchNormalizati
 def DenseBlock(x, num_filters, num_layers):
     temp = x
     for _ in range(num_layers):
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
+        x = BatchNormalization()(temp)
+        x = ReLU()(x)
         x = Conv2D(num_filters, (3, 3), use_bias=False, padding="same")(x)
         x = Dropout(0.2)(x)
         temp = Concatenate(axis=-1)([temp, x])
@@ -184,8 +184,8 @@ def DenseBlock(x, num_filters, num_layers):
 
 def TransitionBlock(x, num_filters):
     x = BatchNormalization()(x)
-    x = Activation("relu")(x)
-    x = Conv2D(num_filters, (1, 1), use_bias=False)
+    x = ReLU()(x)
+    x = Conv2D(num_filters, (1, 1), use_bias=False)(x)
     x = Dropout(0.2)(x)
     x = AveragePooling2D(pool_size=(2, 2))(x)
     return x
@@ -194,7 +194,7 @@ def TransitionBlock(x, num_filters):
 #                         l: number of layers per denseblock
 def DenseNetCifar(input_tensor, classes, k, l):
     x = Conv2D(k, (3, 3), use_bias=False, padding="same")(input_tensor)
-    # Three Dense-blocks with same num of layers
+    
     x = DenseBlock(x, k, l)
     x = TransitionBlock(x, k)
 
@@ -205,7 +205,7 @@ def DenseNetCifar(input_tensor, classes, k, l):
     x = TransitionBlock(x, k)
 
     x = BatchNormalization()(x)
-    x = Activarion("relu")(x)
+    x = ReLU()(x)
     x = AveragePooling2D(pool_size=(2, 2))(x)
     x = Flatten()(x)
     x = Dense(classes, activation="softmax")(x)
