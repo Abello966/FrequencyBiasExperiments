@@ -77,10 +77,10 @@ def ResBlockA(x, num, stride, norm_layer):
     else:
        conv0 = Conv2D(256 * num, 1, strides=stride, padding="valid")(x)
        conv1 = Conv2D(64 * num, 1, strides=stride, padding="valid")(x)
-        
+
     conv1 = norm_layer()(conv1)
     conv1 = ReLU()(conv1)
-    
+
     conv1 = Conv2D(64 * num, 3, padding="same")(conv1)
     conv1 = norm_layer()(conv1)
     conv1 = ReLU()(conv1)
@@ -103,7 +103,7 @@ def ResBlockB(x, num, norm_layer):
 
     conv1 = Conv2D(256 * num, 1, padding="same")(conv1)
     conv1 = norm_layer()(conv1)
-    
+
     x = Add()([conv1, x])
     x = ReLU()(x)
 
@@ -119,11 +119,11 @@ def CifarResNetBlock(x, nfilters, norm_layer, strides=1):
 
     if strides == 2:
         x = Conv2D(nfilters, 1, strides=strides, padding="same", kernel_initializer="he_normal", kernel_regularizer=l2(1e-4))(x)
-    
+
     x = Add()([conv2, x])
     x = ReLU()(x)
     return x
-   
+
 def CifarResNet(n, input_tensor=None, classes=1000, Normalization=BatchNormalization):
     x = Conv2D(16, 3, padding="same", kernel_regularizer=l2(1e-4))(input_tensor)
     x = Normalization()(x)
@@ -144,7 +144,7 @@ def CifarResNet(n, input_tensor=None, classes=1000, Normalization=BatchNormaliza
     x = Flatten()(x)
     x = Dense(classes, activation="softmax", kernel_regularizer=l2(1e-4))(x)
     return Model(inputs=input_tensor, outputs=x)
-    
+
 def SmolResNet50(input_tensor=None, classes=1000, Normalization=BatchNormalization):
     x = Conv2D(64, 7, padding="same")(input_tensor)
     x = Normalization()(x)
@@ -177,15 +177,21 @@ def DenseBlock(x, num_filters, num_layers):
     for _ in range(num_layers):
         x = BatchNormalization()(temp)
         x = ReLU()(x)
-        x = Conv2D(num_filters, (3, 3), use_bias=False, padding="same")(x)
+        x = Conv2D(4 * num_filters, (1, 1), padding="same")(x)
         x = Dropout(0.2)(x)
+
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(num_filters, (3, 3), padding="same")(x)
+        x = Dropout(0.2)(x)
+
         temp = Concatenate(axis=-1)([temp, x])
     return temp
 
 def TransitionBlock(x, num_filters):
     x = BatchNormalization()(x)
     x = ReLU()(x)
-    x = Conv2D(num_filters, (1, 1), use_bias=False)(x)
+    x = Conv2D(x.shape[-1] // 2, (1, 1))(x)
     x = Dropout(0.2)(x)
     x = AveragePooling2D(pool_size=(2, 2))(x)
     return x
@@ -193,8 +199,8 @@ def TransitionBlock(x, num_filters):
 # Terminology from paper: k "growth rate": num of filters
 #                         l: number of layers per denseblock
 def DenseNetCifar(input_tensor, classes, k, l):
-    x = Conv2D(k, (3, 3), use_bias=False, padding="same")(input_tensor)
-    
+    x = Conv2D(2 * k, (3, 3), use_bias=False, padding="same")(input_tensor)
+
     x = DenseBlock(x, k, l)
     x = TransitionBlock(x, k)
 
@@ -249,7 +255,7 @@ def get_arch(arg, input_shape, classes, **kwargs):
     elif arg == "MobileNetV2":
         return MobileNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "DenseNetCifar":
-        return DenseNetCifar(input_tensor, classes, 12, 12)
+        return DenseNetCifar(input_tensor, classes, 24, 41)
     else:
         show_available()
         raise Exception(arg + " not an available architecture")
