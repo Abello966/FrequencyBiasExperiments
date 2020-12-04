@@ -27,7 +27,7 @@ default_datagen = {
     "featurewise_center": False,  # set input mean to 0 over the dataset
     "samplewise_center": True,  # set each sample mean to 0
     "featurewise_std_normalization": False,  # divide inputs by std of the dataset
-    "samplewise_std_normalization": False,  # divide each input by its std
+    "samplewise_std_normalization": True,  # divide each input by its std
     "zca_whitening":False,  # apply ZCA whitening
     "zca_epsilon":1e-06,  # epsilon for ZCA whitening
     "rotation_range":10,   # randomly rotate images in the range (degrees, 0 to 180)

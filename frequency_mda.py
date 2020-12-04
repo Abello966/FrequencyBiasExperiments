@@ -22,7 +22,10 @@ cifar_datagen_kwargs = {
     "width_shift_range":0.1,
     # randomly shift images vertically (fraction of total height)
     "height_shift_range":0.1,
-    "horizontal_flip":True,  # randomly flip images
+    "horizontal_flip":True,  # randomly flip imagest
+    "samplewise_center": True,  # set each sample mean to 0
+    "samplewise_std_normalization": True,  # divide each input by its std
+
 }
 
 
@@ -71,7 +74,7 @@ else:
 if DATASET_NAME == "CIFAR10":
     datagen_kwargs = cifar_datagen_kwargs
 else:
-    datagen_kwargs = dataset.test_datagen
+    datagen_kwargs = datasets.default_test_datagen
 
 dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
 emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen, dataset.input_shape)

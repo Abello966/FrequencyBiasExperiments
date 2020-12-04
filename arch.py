@@ -255,7 +255,7 @@ def get_arch(arg, input_shape, classes, **kwargs):
     elif arg == "MobileNetV2":
         return MobileNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "DenseNetCifar":
-        return DenseNetCifar(input_tensor, classes, 24, 41)
+        return DenseNetCifar(input_tensor, classes, 12, 16)
     else:
         show_available()
         raise Exception(arg + " not an available architecture")
