@@ -49,17 +49,7 @@ datagen_kwargs = {
     "data_format":"channels_last",
 }
 
-# TODO: this should be put on a .env perhaps
-# VGGFace
-vgg_dataset_kwargs = {
-    "df_path": "/misc/users/abello/VGGFaces2/train_df.csv",
-    "images_path": "data/VGGFaces2/",
-    "path_col": "path",
-    "class_col": "class",
-    "test_frac": 0.05,
-}
-
-empty_kwargs = {}
+dataset_kwarg = {}
 
 model_kwargs = {
     #"Normalization": "BatchNormalization"
@@ -68,18 +58,12 @@ model_kwargs = {
 if len(sys.argv) != 3:
     show_use_and_exit()
 
-
 todays_mod = sys.argv[1]
 todays_ds = sys.argv[2]
 
-if todays_ds == "VGGFace2":
-    dataset_kwarg = vgg_dataset_kwargs
-else:
-    dataset_kwarg = empty_kwargs
-
-NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + todays_mod + ""
 EPOCHS = 20
 batch_size = 64
+NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + str(batch_size) + todays_mod
 
 dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size, **dataset_kwarg)
 
@@ -106,7 +90,7 @@ with strategy.scope():
         monitor="val_loss",
         save_best_only=True)
     
-    opt = kr.optimizers.Adam()
+    opt = kr.optimizers.SGD(lr=1e-2, momentum=0.9)
     model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 

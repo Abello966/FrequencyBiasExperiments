@@ -52,7 +52,7 @@ datagen_kwargs = {
 # TODO: this should be put on a .env perhaps
 # VGGFace
 vgg_dataset_kwargs = {
-    "df_path": "/misc/users/abello/VGGFaces2/train_df.csv",
+    "df_path": "data/2020-09-20_VGGFace2_train_df.csv",
     "images_path": "data/VGGFaces2/",
     "path_col": "path",
     "class_col": "class",
@@ -77,9 +77,9 @@ if todays_ds == "VGGFace2":
 else:
     dataset_kwarg = empty_kwargs
 
-NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + todays_mod + ""
-EPOCHS = 20
+EPOCHS = 10
 batch_size = 64
+NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + str(batch_size) + todays_mod + ""
 
 dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size, **dataset_kwarg)
 
@@ -87,7 +87,7 @@ strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
 
     def lr_scheduler(epoch, lr):
-        if epoch < 10:
+        if epoch < 5:
             return lr
         elif epoch % 5 == 0:
             return lr / 2
@@ -102,15 +102,15 @@ with strategy.scope():
     LRS = kr.callbacks.LearningRateScheduler(lr_scheduler, verbose=1)
 
     MCC = kr.callbacks.ModelCheckpoint(
-        filepath="model_weights/" + NAME,
+        filepath="model_weights/" + NAME + "_{epoch}",
         monitor="val_loss",
-        save_best_only=True)
+        save_best_only=False)
     
-    opt = kr.optimizers.Adam()
+    opt = kr.optimizers.SGD(lr=1e-2, momentum=0.9)
     model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 
-hist = model.fit(dataset.train_dataset, validation_data=dataset.test_dataset, epochs=EPOCHS,
-        steps_per_epoch=dataset.steps_per_epoch, validation_steps=dataset.validation_steps, callbacks=[MCC, LRS],
-        use_multiprocessing=False, workers=1, max_queue_size=128)
+hist = model.fit(dataset.train_dataset, epochs=EPOCHS,
+        steps_per_epoch=dataset.steps_per_epoch, callbacks=[MCC, LRS],
+        use_multiprocessing=True, workers=32, max_queue_size=128)
 pkl.dump(hist.history, open(NAME + ".pkl", "wb"))
