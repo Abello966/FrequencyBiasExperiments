@@ -32,14 +32,11 @@ def get_crossentropy_iterator(mod, Xdatagen, preproc=lambda x: x):
     return loss / npoints
 
 # Calculate the accuracy of mod in Xdatagen using an optional
-# preprocessing function preproc
-def get_accuracy_iterator(mod, Xdatagen, k=1, preproc=lambda x: x):
+def get_accuracy_iterator(mod, Xdatagen, k=1):
     acc = 0
     npoints = 0
     for i in range(len(Xdatagen)):
         Xfr, yfr = next(Xdatagen)
-        Xfr = preproc(Xfr)
-
         ypred = mod.predict(Xfr)
         npoints += len(yfr)
         acc += np.sum(top_k_categorical_accuracy(yfr, ypred, k=k))

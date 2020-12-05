@@ -88,7 +88,10 @@ print("Baseline Acc:", baseline_acc)
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring_dataset(Xfr, percent_range[i], percent_range[i + 1])
-    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen, preproc=preproc)
+    datagen_kwargs["preprocessing_function"] = preproc
+    dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
+
+    this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen)
     print(percent_range[i], "-", percent_range[i + 1], ":", this_mda)
     removed_acc.append(this_mda)
 
