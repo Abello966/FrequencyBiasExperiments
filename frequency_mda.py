@@ -77,7 +77,7 @@ else:
     datagen_kwargs = datasets.default_test_datagen
 
 dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
-emp_dist = utils.get_mean_energy_iterator(dataset.test_datagen, dataset.input_shape)
+emp_dist = utils.get_mean_energy_iterator(dataset.clean_test_datagen, dataset.input_shape)
 percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 
 # load model and calculate baseline

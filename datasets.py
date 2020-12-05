@@ -27,7 +27,7 @@ default_datagen = {
     "featurewise_center": False,  # set input mean to 0 over the dataset
     "samplewise_center": True,  # set each sample mean to 0
     "featurewise_std_normalization": False,  # divide inputs by std of the dataset
-    "samplewise_std_normalization": True,  # divide each input by its std
+    "samplewise_std_normalization": False,  # divide each input by its std
     "zca_whitening":False,  # apply ZCA whitening
     "zca_epsilon":1e-06,  # epsilon for ZCA whitening
     "rotation_range":10,   # randomly rotate images in the range (degrees, 0 to 180)
@@ -104,7 +104,7 @@ class CifarDataset():
         datagen_for_test = ImageDataGenerator()
 
         self.input_shape = X_train.shape[1:]
-        self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size) 
+        self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
         self.test_dataset = datagen_for_test.flow(X_test, Y_test, batch_size=batch_size)
         self.steps_per_epoch = X_train.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
@@ -126,8 +126,11 @@ class CifarTestDataset():
         Y_test = to_categorical(Y_test)
 
         datagen = ImageDataGenerator(**datagen_kwargs)
+        clean_datagen = ImageDataGenerator()
+
 
         self.test_datagen = datagen.flow(X_test, Y_test, batch_size=batch_size)
+        self.clean_test_datagen = clean_datagen.flow(X_test, Y_test, batch_size=batch_size)
         self.input_shape = X_test.shape[1:]
         self.steps_per_epoch = X_test.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
@@ -192,7 +195,7 @@ class VGGFaceTrainDataset():
             class_mode="categorical",
             shuffle=True
         )
-        
+
         self.train_dataset = master_generator
         self.input_shape = (160, 160, 3)
         self.steps_per_epoch = len(train_dataset_df) // batch_size
@@ -205,8 +208,21 @@ class VGGFaceTestDataset():
         classlist = sorted(list(set(test_data[class_col])))
 
         datagen = ImageDataGenerator(**datagen_kwargs)
+        clean_datagen = ImageDataGenerator()
 
         self.test_datagen = datagen.flow_from_dataframe(
+            test_data,
+            directory=images_path,
+            x_col=path_col,
+            y_col=class_col,
+            target_size=(160, 160),
+            classes=classlist,
+            batch_size=batch_size,
+            class_mode="categorical",
+            shuffle=True
+        )
+
+        self.clean_test_datagen = clean_datagen.flow_from_dataframe(
             test_data,
             directory=images_path,
             x_col=path_col,
@@ -241,7 +257,10 @@ class RestrictedImageNetDataset():
 class RestrictedImageNetDatasetTest():
     def __init__(self, datagen_kwargs, batch_size):
         datagen = ImageDataGenerator(**datagen_kwargs)
+        clean_datagen = ImageDataGenerator()
         self.test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
+                        target_size=(160,160), batch_size=batch_size, class_mode="categorical")
+        self.clean_test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
                         target_size=(160,160), batch_size=batch_size, class_mode="categorical")
 
         self.input_shape = (160, 160, 3)
