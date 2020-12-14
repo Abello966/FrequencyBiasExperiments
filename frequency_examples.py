@@ -45,8 +45,8 @@ baseline_sample, _ = next(dataset.test_datagen)
 Xsamples = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring(Xfr, percent_range[i], percent_range[i + 1])
-    datagen_kwargs["preprocessing_function"] = preproc
-    dataset = datasets.get_test_dataset(DATASET_NAME, {}, NUM_EXAMPLES, **dataset_kwargs)
+    dataset = datasets.get_test_dataset(DATASET_NAME, {"preprocessing_function": preproc},
+                                        NUM_EXAMPLES, **dataset_kwargs)
     Xsample, _ = next(dataset.test_datagen)
     Xsamples.append(Xsample)
 
