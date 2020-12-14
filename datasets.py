@@ -112,7 +112,7 @@ class CifarDataset():
 
 class CifarTestDataset():
     # extended: False for 10, True for 100
-    def __init__(self, extended, datagen_kwargs, batch_size):
+    def __init__(self, extended, datagen_kwargs, batch_size, seed=None):
         if extended:
             (_, _), (X_test, Y_test) = cifar100.load_data()
             self.nclasses = 100
@@ -129,8 +129,8 @@ class CifarTestDataset():
         clean_datagen = ImageDataGenerator()
 
 
-        self.test_datagen = datagen.flow(X_test, Y_test, batch_size=batch_size)
-        self.clean_test_datagen = clean_datagen.flow(X_test, Y_test, batch_size=batch_size)
+        self.test_datagen = datagen.flow(X_test, Y_test, batch_size=batch_size, seed=seed)
+        self.clean_test_datagen = clean_datagen.flow(X_test, Y_test, batch_size=batch_size, seed=seed)
         self.input_shape = X_test.shape[1:]
         self.steps_per_epoch = X_test.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
@@ -202,7 +202,7 @@ class VGGFaceTrainDataset():
         self.nclasses = len(classlist)
 
 class VGGFaceTestDataset():
-     def __init__(self, datagen_kwargs, batch_size=32, df_path=None, images_path=None, path_col=None, class_col=None):
+     def __init__(self, datagen_kwargs, batch_size=32, df_path=None, images_path=None, path_col=None, class_col=None, seed=None):
         test_data = pd.read_csv(df_path)
         test_data[class_col] = test_data[class_col].astype("str")
         classlist = sorted(list(set(test_data[class_col])))
@@ -219,7 +219,8 @@ class VGGFaceTestDataset():
             classes=classlist,
             batch_size=batch_size,
             class_mode="categorical",
-            shuffle=True
+            shuffle=True,
+            seed=seed
         )
 
         self.clean_test_datagen = clean_datagen.flow_from_dataframe(
@@ -231,7 +232,8 @@ class VGGFaceTestDataset():
             classes=classlist,
             batch_size=batch_size,
             class_mode="categorical",
-            shuffle=True
+            shuffle=True,
+            seed=seed
         )
 
         self.input_shape = (160, 160, 3)
@@ -255,13 +257,15 @@ class RestrictedImageNetDataset():
         self.nclasses = 9
 
 class RestrictedImageNetDatasetTest():
-    def __init__(self, datagen_kwargs, batch_size):
+    def __init__(self, datagen_kwargs, batch_size, seed=None):
         datagen = ImageDataGenerator(**datagen_kwargs)
         clean_datagen = ImageDataGenerator()
         self.test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
-                        target_size=(160,160), batch_size=batch_size, class_mode="categorical")
+                        target_size=(160,160), batch_size=batch_size, class_mode="categorical",
+                        seed=seed)
         self.clean_test_datagen = datagen.flow_from_directory("data/RestrictedImageNet/val",
-                        target_size=(160,160), batch_size=batch_size, class_mode="categorical")
+                        target_size=(160,160), batch_size=batch_size, class_mode="categorical",
+                        seed=seed)
 
         self.input_shape = (160, 160, 3)
 
@@ -281,15 +285,15 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
         show_available(AVAILABLE_DATASETS)
         raise Exception(arg + " not an available dataset")
 
-def get_test_dataset(arg, datagen_kwargs, batch_size, **kwargs):
+def get_test_dataset(arg, datagen_kwargs, batch_size, seed=None, **kwargs):
     if arg == "VGGFace2":
-        return VGGFaceTestDataset(datagen_kwargs, batch_size, **kwargs)
+        return VGGFaceTestDataset(datagen_kwargs, batch_size, seed=seed, **kwargs)
     elif arg == "CIFAR10":
-        return CifarTestDataset(False, datagen_kwargs, batch_size)
+        return CifarTestDataset(False, datagen_kwargs, batch_size, seed=seed)
     elif arg == "CIFAR100":
-        return CifarTestDataset(True, datagen_kwargs, batch_size)
+        return CifarTestDataset(True, datagen_kwargs, batch_size, seed=seed)
     elif arg == "RestrictedImageNet":
-        return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size)
+        return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size, seed=seed)
     else:
         show_available(AVAILABLE_TESTS)
         raise Exception(arg + " not an available test dataset")
