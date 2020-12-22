@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow.keras as kr
 
+from tensorflow.keras.applications import DenseNet121
 from tensorflow.keras.applications import DenseNet169
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications import ResNet152
@@ -16,7 +17,7 @@ from tensorflow.keras.layers import BatchNormalization, LayerNormalization
 
 NoNormalization = lambda: Lambda(lambda x: x)
 
-AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "DenseNet169", "MobileNetV2"]
+AVAILABLE_ARCHS = ["SmolAlexNet", "AlexNet", "VGG16", "VGG19", "CifarResNet", "ResNet50", "DenseNet169", "DenseNet121", "MobileNetV2"]
 
 def SmolAlexNet(input_tensor=None, classes=1000, Normalization=NoNormalization):
     x = Conv2D(96, 11, padding="valid", activation="relu")(input_tensor)
@@ -245,13 +246,15 @@ def get_arch(arg, input_shape, classes, **kwargs):
     elif arg == "VGG19":
         return VGG19(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "ResNet50":
-        return LocalResNet50(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+        return ResNet50(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "ResNet152":
         return ResNet152(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "CifarResNet":
         return CifarResNet(3, input_tensor=input_tensor, classes=classes)
     elif arg == "DenseNet169":
         return DenseNet169(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
+    elif arg == "DenseNet121":
+        return DenseNet121(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)   
     elif arg == "MobileNetV2":
         return MobileNetV2(input_tensor=input_tensor, classes=classes, weights=None, **kwargs)
     elif arg == "DenseNetCifar":

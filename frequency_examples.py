@@ -42,10 +42,11 @@ dataset = datasets.get_test_dataset(DATASET_NAME, {}, NUM_EXAMPLES, seed=seed, *
 emp_dist = utils.get_mean_energy_iterator(dataset.clean_test_datagen, dataset.input_shape)
 percent_range = utils.get_percentage_masks_relevance(emp_dist, PERCENT)
 baseline_sample, _ = next(dataset.test_datagen)
+baseline_sample /= 255.
 Xsamples = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring(Xfr, percent_range[i], percent_range[i + 1])
-    Xsamples = [preproc(Xfr) for Xfr in baseline_sample.copy()]
+    Xsample = [preproc(Xfr) for Xfr in baseline_sample.copy()]
     Xsamples.append(Xsample)
 
 
