@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import tensorflow_datasets as tfds
 import datetime
 from sklearn.model_selection import train_test_split
 from tensorflow.data import Dataset
@@ -10,8 +11,8 @@ from tensorflow.keras.datasets import cifar10, cifar100
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications.vgg16 import preprocess_input
 
-AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "VGGFace2", "RestrictedImageNet"]
-AVAILABLE_TESTS = ["CIFAR10", "CIFAR100", "RestrictedImageNet", "VGGFace2"]
+AVAILABLE_DATASETS = ["CIFAR10", "CIFAR100", "SVHN", "VGGFace2", "RestrictedImageNet"]
+AVAILABLE_TESTS = ["CIFAR10", "CIFAR100", "SVHN", "RestrictedImageNet", "VGGFace2"]
 
 # default args
 vgg_dataset_kwargs = {
@@ -135,6 +136,72 @@ class CifarTestDataset():
         self.steps_per_epoch = X_test.shape[0] // batch_size
         self.validation_steps = X_test.shape[0] // batch_size
 
+
+class SVHNDataset():
+    # assumes SVHN has already been downloaded through the prepare_and_download method
+    def __init__(self, datagen_kwargs, batch_size, val_split=0.1):
+        data = tfds.image_classification.SvhnCropped()
+        data = data.as_dataset()["train"].as_numpy_iterator()
+
+        # small dataset so we can afford to put it all in memory
+        X_train = []
+        Y_train = []
+        for a in data:
+            X_train.append(a["image"])
+            Y_train.append(a["label"])
+
+        X_train = np.array(X_train)
+        Y_train = np.array(Y_train)
+        Y_train = to_categorical(Y_train)
+
+        # Divide train/val
+        X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size=val_split, stratify=Y_train, random_state=2)
+
+        X_train = X_train / 255
+        X_test = X_test / 255
+
+        # All our labels are categorical and all our images are floats
+        Y_train = to_categorical(Y_train)
+        Y_test = to_categorical(Y_test)
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+        datagen_for_test = ImageDataGenerator(**datagen_kwargs)
+
+        self.input_shape = X_train.shape[1:]
+        self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
+        self.test_dataset = datagen_for_test.flow(X_test, Y_test, batch_size=batch_size)
+        self.steps_per_epoch = X_train.shape[0] // batch_size
+        self.validation_steps = X_test.shape[0] // batch_size
+
+
+
+class SVHNTestDataset():
+    def __init__(self, datagen_kwargs, batch_size, seed=None):
+        data = tfds.image_classification.SvhnCropped()
+        data = data.as_dataset()["train"].as_numpy_iterator()
+
+        X_test []
+        Y_test = []
+        for a in data:
+            X_test.append(a["image"])
+            X_test.append(a["label"])
+
+        X_test = np.array(X_test)
+        Y_test = np.array(X_test)
+        Y_test = to_categorical(Y_test)
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+        clean_datagen = ImageDataGenerator()
+
+
+        datagen = ImageDataGenerator(**datagen_kwargs)
+        clean_datagen = ImageDataGenerator()
+
+        self.test_datagen = datagen.flow(X_test, Y_test, batch_size=batch_size, seed=seed)
+        self.clean_test_datagen = clean_datagen.flow(X_test, Y_test, batch_size=batch_size, seed=seed)
+        self.input_shape = X_test.shape[1:]
+        self.steps_per_epoch = X_test.shape[0] // batch_size
+        self.validation_steps = X_test.shape[0] // batch_size
 
 # Assumes VGGFaceDataset has already been preprocessed
 # So naturally every image has a 182x182 size
@@ -281,6 +348,8 @@ def get_dataset(arg, datagen_kwargs, batch_size, **kwargs):
         return VGGFaceTrainDataset(datagen_kwargs, batch_size, **kwargs)
     if arg == "RestrictedImageNet":
         return RestrictedImageNetDataset(datagen_kwargs, batch_size)
+    if arg == "SVHN":
+        return SVHNDataset(datagen_kwargs, batch_size)
     elif arg not in AVAILABLE_DATASETS:
         show_available(AVAILABLE_DATASETS)
         raise Exception(arg + " not an available dataset")
@@ -294,6 +363,8 @@ def get_test_dataset(arg, datagen_kwargs, batch_size, seed=None, **kwargs):
         return CifarTestDataset(True, datagen_kwargs, batch_size, seed=seed)
     elif arg == "RestrictedImageNet":
         return RestrictedImageNetDatasetTest(datagen_kwargs, batch_size, seed=seed)
+    elif arg == "SVHN":
+        return SVHNTestDataset(datagen_kwargs, batch_size, seed=seed)
     else:
         show_available(AVAILABLE_TESTS)
         raise Exception(arg + " not an available test dataset")
