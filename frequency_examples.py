@@ -23,18 +23,10 @@ try:
 except Exception as e:
     show_use_and_exit()
 
-vgg_dataset_kwargs = {
-    "df_path": "data/2020-09-20_VGGFace2_test_df.csv",
-    "images_path": "data/VGGFaces2/",
-    "path_col": "path",
-    "class_col": "class",
-}
-
 seed = 1
-
 # load dataset and get empirical distribution
 if DATASET_NAME == "VGGFace2":
-    dataset_kwargs = vgg_dataset_kwargs
+    dataset_kwargs = datasets.vgg_dataset_kwargs
 else:
     dataset_kwargs = {}
 
