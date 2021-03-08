@@ -1,5 +1,5 @@
 # this script generates the RestrictedImageNet dataset and should be ran on the folder where the ILSVRC2017 folder is located
-# I used https://academictorrents.com/details/943977d8c96892d24237638335e481f3ccd54cfb/tech&dllist=1 but I think it's available on Kaggle aswell
+# I used https://academictorrents.com/details/943977d8c96892d24237638335e481f3ccd54cfb/tech&dllist=1 but it's available on Kaggle aswell
 import glob
 from PIL import Image
 import numpy as np
@@ -129,4 +129,3 @@ for key, value in group_class.items():
 
 print("Started preprocessing: val")
 preprocess_val("val", group_class)
-

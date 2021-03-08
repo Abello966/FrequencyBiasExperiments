@@ -17,12 +17,6 @@ def show_use_and_exit():
     print("BATCH: batch size the model was trained with")
     sys.exit()
 
-cifar_datagen_kwargs = {
-    "samplewise_center": True,  # set each sample mean to 0
-    "samplewise_std_normalization": True,  # divide each input by its std
-}
-
-
 # magic
 tf.keras.backend.set_floatx('float32')
 gpu_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -51,52 +45,20 @@ else:
 print("STARTING FREQUENCY_MDA")
 print(MODEL_NAME, "on", DATASET_NAME, "with", PERCENT, " percent and batch", BATCH_SIZE)
 
-vgg_dataset_kwargs = {
-    "df_path": "data/2020-09-20_VGGFace2_test_df.csv",
-    "images_path": "data/VGGFaces2/",
-    "path_col": "path",
-    "class_col": "class",
-}
-
-
 # load dataset and get empirical distribution
 if DATASET_NAME == "VGGFace2":
-    dataset_kwargs = vgg_dataset_kwargs
+    dataset_kwargs = datasets.vgg_dataset_kwargs
 else:
     dataset_kwargs = {}
 
-if DATASET_NAME == "CIFAR10" or DATASET_NAME == "SVHN":
-    datagen_kwargs = cifar_datagen_kwargs
-else:
-    datagen_kwargs = datasets.default_test_datagen
-    datagen_kwargs = {
-        "featurewise_center": False,  # set input mean to 0 over the dataset
-        "samplewise_center": True,  # set each sample mean to 0
-        "featurewise_std_normalization": False,  # divide inputs by std of the dataset
-        "samplewise_std_normalization": True,  # divide each input by its std
-        "zca_whitening":False,  # apply ZCA whitening
-        "zca_epsilon":1e-06,  # epsilon for ZCA whitening
-        "rotation_range":10,   # randomly rotate images in the range (degrees, 0 to 180)
-        # randomly shift images horizontally (fraction of total width)
-        "width_shift_range":0.1,
-        # randomly shift images vertically (fraction of total height)
-        "height_shift_range":0.1,
-        "shear_range":0.,  # set range for random shear
-        "zoom_range":0.05,  # set range for random zoom
-        "channel_shift_range":0.,  # set range for random channel shifts
-        # set mode for filling points outside the input boundaries
-        "fill_mode":'nearest',
-        "cval":0.,  # value used for fill_mode : "constant"
-        "horizontal_flip":True,  # randomly flip images
-        "vertical_flip":False,  # randomly flip images
-        # set rescaling factor (applied before any other transformation)
-        "rescale":None,
-        # set function that will be applied on each input
-        "preprocessing_function": lambda x: x / 255.,
-        # image data format, either "channels_first" or "channels_last"
-        "data_format":"channels_last",
-    }
-
+datagen_kwargs = {
+    "featurewise_center": False,  # set input mean to 0 over the dataset
+    "samplewise_center": True,  # set each sample mean to 0
+    "featurewise_std_normalization": False,  # divide inputs by std of the dataset
+    "samplewise_std_normalization": True,  # divide each input by its std
+    # set function that will be applied on each input - uncomment when normalization is not enabled
+    #"preprocessing_function": lambda x: x / 255.,
+}
 
 dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
         emp_dist = utils.get_mean_energy_iterator(dataset.clean_test_datagen, dataset.input_shape)
@@ -110,7 +72,6 @@ print("Baseline Acc:", baseline_acc)
 removed_acc = []
 for i in range(len(percent_range) - 1):
     preproc = lambda Xfr: utils.remove_frequency_ring(Xfr, percent_range[i], percent_range[i + 1])
-    datagen_kwargs["preprocessing_function"] = lambda x: preproc(x / 255.)
     dataset = datasets.get_test_dataset(DATASET_NAME, datagen_kwargs, BATCH_SIZE, **dataset_kwargs)
 
     this_mda = utils.get_accuracy_iterator(mod, dataset.test_datagen)
