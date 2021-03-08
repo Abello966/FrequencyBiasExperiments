@@ -44,7 +44,7 @@ datagen_kwargs = {
     # set rescaling factor (applied before any other transformation)
     "rescale":None,
     # set function that will be applied on each input
-    "preprocessing_function":None,
+    "preprocessing_function": lambda x: x / 255.,
     # image data format, either "channels_first" or "channels_last"
     "data_format":"channels_last",
 }
@@ -55,7 +55,7 @@ model_kwargs = {
     #"Normalization": "BatchNormalization"
 }
 
-if len(sys.argv) != 3:
+if len(sys.argv) != 2:
     show_use_and_exit()
 
 todays_mod = sys.argv[1]

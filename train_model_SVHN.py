@@ -25,7 +25,7 @@ datagen_kwargs = {
     "width_shift_range":0.1,
     # randomly shift images vertically (fraction of total height)
     "height_shift_range":0.1,
-    "horizontal_flip":True,  # randomly flip images
+    "horizontal_flip":False,  # randomly flip images
     "samplewise_center": True,  # set each sample mean to 0
     "samplewise_std_normalization": True,  # divide each input by its std
 }

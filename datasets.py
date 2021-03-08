@@ -152,7 +152,6 @@ class SVHNDataset():
 
         X_train = np.array(X_train)
         Y_train = np.array(Y_train)
-        Y_train = to_categorical(Y_train)
 
         # Divide train/val
         X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, test_size=val_split, stratify=Y_train, random_state=2)
@@ -167,6 +166,7 @@ class SVHNDataset():
         datagen = ImageDataGenerator(**datagen_kwargs)
         datagen_for_test = ImageDataGenerator(**datagen_kwargs)
 
+        self.nclasses = 10
         self.input_shape = X_train.shape[1:]
         self.train_dataset = datagen.flow(X_train, Y_train, batch_size=batch_size)
         self.test_dataset = datagen_for_test.flow(X_test, Y_test, batch_size=batch_size)
@@ -178,21 +178,19 @@ class SVHNDataset():
 class SVHNTestDataset():
     def __init__(self, datagen_kwargs, batch_size, seed=None):
         data = tfds.image_classification.SvhnCropped()
-        data = data.as_dataset()["train"].as_numpy_iterator()
+        data = data.as_dataset()["test"].as_numpy_iterator()
 
-        X_test []
+        X_test = []
         Y_test = []
         for a in data:
             X_test.append(a["image"])
-            X_test.append(a["label"])
+            Y_test.append(a["label"])
 
         X_test = np.array(X_test)
-        Y_test = np.array(X_test)
-        Y_test = to_categorical(Y_test)
+        Y_test = to_categorical(np.array(Y_test))
 
         datagen = ImageDataGenerator(**datagen_kwargs)
         clean_datagen = ImageDataGenerator()
-
 
         datagen = ImageDataGenerator(**datagen_kwargs)
         clean_datagen = ImageDataGenerator()
