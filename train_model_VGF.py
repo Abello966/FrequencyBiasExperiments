@@ -44,7 +44,7 @@ datagen_kwargs = {
     # set rescaling factor (applied before any other transformation)
     "rescale":None,
     # set function that will be applied on each input
-    "preprocessing_function":None,
+    "preprocessing_function": lambda x: x / 255.,
     # image data format, either "channels_first" or "channels_last"
     "data_format":"channels_last",
 }
@@ -68,20 +68,14 @@ model_kwargs = {
 if len(sys.argv) != 3:
     show_use_and_exit()
 
-
 todays_mod = sys.argv[1]
 todays_ds = sys.argv[2]
 
-if todays_ds == "VGGFace2":
-    dataset_kwarg = vgg_dataset_kwargs
-else:
-    dataset_kwarg = empty_kwargs
-
 EPOCHS = 10
 batch_size = 64
-NAME = str(datetime.date.today()) + "_" + todays_ds + "_" + str(batch_size) + todays_mod + ""
+NAME = str(datetime.date.today()) + todays_ds + str(batch_size) + todays_mod
 
-dataset = datasets.get_dataset(todays_ds, datagen_kwargs, batch_size, **dataset_kwarg)
+dataset = datasets.get_dataset("VGGFace2", datagen_kwargs, batch_size, **vgg_dataset_kwargs)
 
 strategy = tf.distribute.MirroredStrategy()
 with strategy.scope():
